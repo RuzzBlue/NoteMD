@@ -1,95 +1,138 @@
-# NoteMD (Electron)
+# NoteMD — Local-First Markdown Notes
 
-**Version 2.3.12** — local-first notes with projects, tabs, TinyMCE + markdown, autosave temp files, dark mode, import/export, and move notes between folders.
+A desktop note-taking app built with Electron. Pick a folder on your disk — your notes live there as plain `.md` files, organized into projects. Rich editing with TinyMCE, autosave, dark mode, and full import/export.
 
-Local-first note app that stores **projects as folders** and **notes as `.md` files** inside a user-chosen root directory.
+## Features
 
-## TinyMCE editor (stable baseline)
+- **Local-first storage** — projects are folders, notes are Markdown files on your filesystem
+- **Rich editor** — TinyMCE with dual toolbar, GFM task lists, font size, colors, preview & fullscreen
+- **Three editor modes** — Rich Text, Markdown, or HTML source
+- **Projects & tabs** — multiple projects with icons, colors, and sort order; multi-tab note editing
+- **Autosave** — scratch copies in `appdata/temp/` so edits survive crashes
+- **Dark mode** — sun/moon toggle in the toolbar (persisted across sessions)
+- **Import notes** — drag-and-drop or pick files (`.txt`, `.md`, `.html`, `.json`, `.rtf`) → saved under `notes/Imports/`
+- **Export notes** — current note, whole folder, or everything; output as Markdown, plain text, HTML, JSON, or RTF
+- **Move notes** — shuttle notes between project folders (duplicates renamed automatically)
+- **Remembers your root folder** — last path stored in `%AppData%/Roaming/NoteMD/config.json`
 
-The editor setup below is the current known-good configuration — keep these pieces together when changing toolbar or checklist behavior:
-
-| Piece | Role |
-|--------|------|
-| `src/renderer/renderer.js` | `initTinyMCE()` — dual toolbar rows, plugins, content styles |
-| `src/renderer/notemd-checklist-plugin.js` | GFM task lists (`notemdchecklist`), `tox-notemd-checklist` class for list-button state |
-| `src/renderer/notemd-toolbar-plugin.js` | Second-row toggle (`notemdtoolbarexpand`, ⋮), expanded by default |
-| Turndown + `normalizeTaskListsForTinyMCE` | Markdown ↔ checklist HTML round-trip |
-
-**Toolbar layout:** row 1 = undo, blocks, font size input (px), text styles, colors, align dropdown, ⋮ toggle; row 2 = lists, links/media, `code` / `preview` / `fullscreen`, `removeformat`, `help` (hidden when ⋮ is off).
-
-**App menu:** File (import, export, move notes) · View · Editor · Dev · Help.
-
-**Move notes:** Toolbar **Move to** or File → **Move Notes…** — shuttle notes from a source folder to a destination folder (duplicate names are renamed automatically).
-
-**Import notes:** File → **Import Notes…** — drag-and-drop or pick multiple files (`.txt`, `.md`, `.html`, `.json`, `.rtf`). They are converted to Markdown and saved under **Imports** (`notes/Imports/*.md`). JSON objects with `content`, `markdown`, `body`, or `text` fields map to note content.
-
-**Export notes:** File → **Export Notes…** — export the current note, every note in the current folder, or all notes. Choose Markdown, plain text, HTML, JSON, or RTF for the whole batch. For folder/all exports, pick **keep folder structure** (project subfolders) or **export all in one folder** (flat).
-
-**Root folder:** Last used path is saved in `%AppData%/Roaming/NoteMD/config.json` and restored on startup. Folder picker only appears when no saved path exists or the folder is missing.
-## Disk structure (inside your chosen root)
-
-- `notes/<projectName>/<noteName>.md`
-- `appdata/data.json` (persistent UI metadata for projects: icon/color/order/createdAt)
-- `appdata/temp/` (autosave scratch copies for unsaved note edits)
-
-## Run (dev)
+## Quick Start
 
 ```bash
 npm install
 npm start
 ```
 
-## App icon
+On first launch, pick a root folder for your notes. The app restores that path on every startup.
 
-Place your icon here (project root):
+**Development mode** (opens DevTools):
 
+```bash
+npm run dev
 ```
-Notemd/build/icon.png
-```
 
-Use a **square PNG**, at least **256×256** (512×512 or 1024×1024 is better). `electron-builder` converts it to `.ico` for Windows when you run `npm run dist`.
-
-Optional: add `build/icon.ico` yourself if you already have a multi-size Windows icon (then set `"win": { "icon": "build/icon.ico" }` in `package.json`).
-
-## Build Windows installer (.exe)
-
-From the `Notemd` folder:
+## Build Windows Installer
 
 ```bash
 npm install
 npm run dist
 ```
 
-Output (version in `package.json`, currently **2.3.12**):
+Output (version from `package.json`):
 
-- **Installer:** `dist/NoteMD Setup 2.3.12.exe` (NSIS — use this to install on other PCs)
-- **Unpacked app:** `dist/win-unpacked/NoteMD.exe` (run without installing; useful for testing)
+| Artifact | Path |
+|----------|------|
+| **Installer** | `dist/NoteMD Setup 2.3.12.exe` |
+| **Portable (no install)** | `dist/win-unpacked/NoteMD.exe` |
 
-To build an unpacked folder only (faster, no installer):
+Unpacked build only (faster, no installer):
 
 ```bash
 npm run pack
 ```
 
-First build downloads Electron binaries and can take a few minutes.
+First build downloads Electron binaries — allow a few minutes.
 
-### Build failed at “symbolic link” / no `Setup.exe`?
+### Build failed at "symbolic link"?
 
-Windows often blocks `electron-builder` when it extracts **winCodeSign** (needs symlink permission). Your log may show:
+Windows may block `electron-builder` when extracting winCodeSign. Try in order:
 
-`ERROR: Cannot create symbolic link : A required privilege is not held by the client`
+1. Run `npm run dist` — the project script prepares the cache without symlinks
+2. Enable **Developer Mode**: Settings → System → For developers → **Developer Mode** → On, then retry
+3. Run PowerShell **as Administrator** in the project folder and run `npm run dist` again
 
-**Fix (try in order):**
+## Data on Disk
 
-1. **Use the project build script** (prepares cache without symlinks, then builds):
+Everything lives inside the root folder you choose at startup:
 
-```bash
-npm run dist
+```
+your-root/
+  notes/
+    Folder1/
+      Note1.md
+    Imports/          # imported files land here
+  appdata/
+    data.json         # project metadata (icon, color, order)
+    temp/             # autosave scratch files
 ```
 
-2. If that still fails, enable **Developer Mode**: Settings → System → For developers → **Developer Mode** → On. Close the terminal, open a new one, run `npm run dist` again.
+Notes are plain Markdown — open them in any editor, back them up with any sync tool.
 
-3. Or run **PowerShell as Administrator** in the `Notemd` folder and run `npm run dist`.
+## App Menu
 
-You should get **`dist/NoteMD Setup 2.3.12.exe`** (full installer). Use that—not only `win-unpacked/NoteMD.exe` (portable)—for install, Start Menu, and taskbar pin.
+| Menu | Actions |
+|------|---------|
+| **File** | Change root folder, import notes, export notes, move notes |
+| **View** | Toggle sidebar, window sizing, full screen |
+| **Editor** | Rich Text / Markdown / HTML source, full-screen editor |
+| **Dev** | Developer tools |
+| **Help** | Info, About |
 
+## App Icon
+
+Place a square PNG at `build/icon.png` (256×256 minimum; 512×512 recommended). `electron-builder` converts it to `.ico` for Windows during `npm run dist`.
+
+## Tech Stack
+
+- Electron 42
+- TinyMCE 8 (rich text editor)
+- Bootstrap 5 (UI)
+- Turndown + turndown-plugin-gfm (HTML → Markdown)
+- marked (Markdown → HTML)
+- rtf-parser (RTF import)
+- electron-builder (Windows NSIS installer)
+
+## Project Structure
+
+```
+src/
+  main/
+    main.js              # Electron main process, menus, IPC
+    preload.js           # Secure bridge to renderer
+    notesStore.js        # Projects, notes, filesystem CRUD
+    importNotes.js       # Multi-format import
+    exportNote.js        # Multi-format export
+    noteFormats.js       # Format conversion helpers
+  renderer/
+    index.html           # App shell
+    renderer.js          # UI logic, TinyMCE init
+    styles.css           # Layout & theming
+    notemd-checklist-plugin.js   # GFM task lists
+    notemd-toolbar-plugin.js     # Expandable second toolbar row
+build/
+  icon.png               # App icon for packaging
+scripts/
+  prepare-win-build-cache.ps1    # Windows build helper
+```
+
+## Editor Notes (for contributors)
+
+The TinyMCE setup is a known-good baseline — keep these pieces together when changing toolbar or checklist behavior:
+
+| Piece | Role |
+|-------|------|
+| `renderer.js` → `initTinyMCE()` | Dual toolbar, plugins, content styles |
+| `notemd-checklist-plugin.js` | GFM task lists, checklist button state |
+| `notemd-toolbar-plugin.js` | Second-row toggle (⋮), expanded by default |
+| Turndown + `normalizeTaskListsForTinyMCE` | Markdown ↔ checklist HTML round-trip |
+
+**Toolbar:** row 1 = undo, blocks, font size, styles, colors, align, ⋮ toggle · row 2 = lists, links/media, code/preview/fullscreen, removeformat, help.
