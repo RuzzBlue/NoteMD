@@ -136,3 +136,44 @@ The TinyMCE setup is a known-good baseline — keep these pieces together when c
 | Turndown + `normalizeTaskListsForTinyMCE` | Markdown ↔ checklist HTML round-trip |
 
 **Toolbar:** row 1 = undo, blocks, font size, styles, colors, align, ⋮ toggle · row 2 = lists, links/media, code/preview/fullscreen, removeformat, help.
+
+## Security & API Keys
+
+**This repo contains no API keys or secrets.** A full scan of source files and git history found nothing to rotate or revoke.
+
+### What you need to run NoteMD
+
+**Nothing extra.** Clone the repo, run `npm install`, then `npm start`. No sign-up, no `.env` file, no per-developer keys.
+
+| Service | Used for | Key required? |
+|---------|----------|---------------|
+| **TinyMCE (self-hosted)** | Rich text editor | No — bundled from `node_modules` |
+| **Bootstrap, marked, Turndown** | UI & format conversion | No |
+| **Font Awesome (CDN)** | Icons in the UI | No — public CDN, no account |
+| **Electron** | Desktop runtime | No |
+
+### TinyMCE `license_key: 'gpl'` is not a secret
+
+The editor init in `renderer.js` sets `license_key: 'gpl'`. That is **TinyMCE’s open-source license declaration**, not a private API key. It tells TinyMCE you are self-hosting the GPL build from npm. It is safe and expected in public source code — do not treat it as a credential and do not move it to `.env`.
+
+### Optional: TinyMCE Cloud API key (not used by this project)
+
+NoteMD does **not** load TinyMCE from Tiny Cloud. If you ever switch to their CDN instead of `node_modules`, each developer needs their own **free** API key:
+
+1. Sign up at [tiny.cloud](https://www.tiny.cloud/auth/signup/) (free tier)
+2. Open your [Tiny Cloud dashboard](https://www.tiny.cloud/my-account/dashboard/) and copy your API key
+3. Store it locally only — e.g. create `.env` in the project root:
+
+   ```
+   TINYMCE_API_KEY=your-key-here
+   ```
+
+4. **Never commit `.env`** — it is already listed in `.gitignore`
+
+Until you change the loader to Tiny Cloud, you can ignore this section.
+
+### Keeping secrets out of git
+
+- `.env` and `.env.*` are gitignored
+- Do not commit `%AppData%/Roaming/NoteMD/config.json` — it only stores your notes root path and dark-mode preference (local to your PC, not in the repo)
+- If you add third-party services later, use environment variables and document them here
