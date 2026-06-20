@@ -2,8 +2,7 @@
 
 A desktop note-taking app built with Electron. Pick a folder on your disk — your notes live there as plain `.md` files, organized into projects. Rich editing with TinyMCE, autosave, dark mode, and full import/export.
 
-![Uploading NoteMD_CAPvCcSDCc.gif…]()
-
+<img width="1920" height="1020" alt="NoteMD_CAPvCcSDCc" src="https://github.com/user-attachments/assets/7807bedb-5aa9-48cc-9bb8-9af4cc850315" />
 
 ## Features
 
