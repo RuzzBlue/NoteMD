@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-bs-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NoteMD</title>
+
+    <link rel="stylesheet" href="../../node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./styles.css" />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+  <body class="app-body">
+    <div class="app-shell">
+      <header class="topbar border-bottom">
+        <div class="topbar-inner d-flex align-items-center w-100 px-3 py-2">
+          <div class="brand d-flex align-items-center gap-2">
+            <i class="fa-solid fa-note-sticky"></i>
+            <span class="fw-semibold">NoteMD</span>
+          </div>
+
+          <div class="topbar-right ms-auto d-flex align-items-center gap-2">
+            <span class="topbar-root-label text-secondary small">Root:</span>
+            <span id="rootPath" class="root-path small text-truncate"></span>
+            <button id="btnChangeRoot" class="btn btn-sm btn-outline-secondary" type="button">
+              <i class="fa-solid fa-folder-open me-1"></i>
+              Change folder
+            </button>
+
+            <div class="editor-mode-toggle btn-group btn-group-sm" role="group" aria-label="Editor mode">
+              <input type="radio" class="btn-check" name="editorMode" id="modeEditor" autocomplete="off" checked />
+              <label class="btn btn-outline-secondary" for="modeEditor">Editor</label>
+              <input type="radio" class="btn-check" name="editorMode" id="modeMarkdown" autocomplete="off" />
+              <label class="btn btn-outline-secondary" for="modeMarkdown">Markdown</label>
+            </div>
+
+            <button
+              id="btnToggleTheme"
+              class="btn-theme-toggle"
+              type="button"
+              title="Switch to dark mode"
+              aria-label="Toggle dark mode"
+              aria-pressed="false"
+            >
+              <i class="fa-solid fa-moon theme-icon theme-icon-moon" aria-hidden="true"></i>
+              <i class="fa-solid fa-sun theme-icon theme-icon-sun" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-area">
+        <aside id="sidebar" class="sidebar border-end">
+          <div class="sidebar-header panel-header border-bottom">
+            <div class="fw-semibold panel-header-title">Projects</div>
+            <div class="d-flex align-items-center gap-2 panel-header-actions">
+              <div class="sort-select-wrap">
+                <i class="fa-solid fa-arrow-down-wide-short sort-select-icon" aria-hidden="true"></i>
+                <select id="projectSort" class="form-select form-select-sm sort-select" aria-label="Sort projects">
+                  <option value="custom">Custom</option>
+                  <option value="az">A → Z</option>
+                  <option value="za">Z → A</option>
+                  <option value="new">Newest</option>
+                  <option value="old">Oldest</option>
+                </select>
+              </div>
+              <button id="btnAddProject" class="btn btn-sm btn-primary panel-header-btn" title="Add project" type="button">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+              <button
+                id="btnHideSidebar"
+                class="sidebar-toggle-btn"
+                type="button"
+                title="Hide projects sidebar (Ctrl+B)"
+                aria-label="Hide sidebar"
+              >
+                <i class="fa-solid fa-caret-left" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div id="projectList" class="project-list p-2"></div>
+        </aside>
+
+        <section class="editor-panel">
+          <div class="tabs-bar panel-header border-bottom">
+            <button
+              id="btnShowSidebar"
+              class="sidebar-toggle-btn sidebar-reveal-btn d-none"
+              type="button"
+              title="Show projects sidebar (Ctrl+B)"
+              aria-label="Show sidebar"
+            >
+              <i class="fa-solid fa-caret-right" aria-hidden="true"></i>
+            </button>
+            <button id="tabsLeft" class="tabs-nav" title="Scroll left" type="button">
+              <i class="fa-solid fa-angle-left"></i>
+            </button>
+            <div id="tabsScroller" class="tabs-scroller">
+              <div id="noteTabs" class="note-tabs"></div>
+            </div>
+            <button id="tabsRight" class="tabs-nav" title="Scroll right" type="button">
+              <i class="fa-solid fa-angle-right"></i>
+            </button>
+            <button id="btnAddNote" class="btn btn-sm btn-success ms-2 me-2" title="Add note" type="button">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+
+          <div class="note-actions border-bottom px-3 py-2 d-flex align-items-center gap-2">
+            <div class="flex-grow-1 d-flex align-items-center gap-2">
+              <span class="text-secondary small">Note:</span>
+              <input id="noteName" class="form-control form-control-sm" placeholder="Note name…" />
+              <span id="unsavedBadge" class="badge text-bg-warning d-none">Unsaved</span>
+            </div>
+            <button id="btnDiscard" class="btn btn-sm btn-outline-warning btn-discard-idle" type="button" disabled>
+              <i class="fa-solid fa-rotate-left me-1"></i>
+              Discard
+            </button>
+            <button id="btnSave" class="btn btn-sm btn-primary" type="button">
+              <i class="fa-solid fa-floppy-disk me-1"></i>
+              Save
+            </button>
+            <button id="btnMoveNote" class="btn btn-sm btn-outline-secondary" type="button" title="Move to another folder">
+              <i class="fa-solid fa-folder-tree me-1"></i>
+              Move to
+            </button>
+            <button id="btnDeleteNote" class="btn btn-sm btn-outline-danger" type="button">
+              <i class="fa-solid fa-trash me-1"></i>
+              Delete
+            </button>
+          </div>
+
+          <div id="editorWrap" class="editor-wrap">
+            <div id="emptyState" class="empty-state">
+              <div class="text-center">
+                <div class="display-6 fw-semibold">Choose a root folder</div>
+                <div class="text-secondary mt-2">Your notes live on disk under the folder you pick.</div>
+                <button id="btnChooseRootEmpty" class="btn btn-primary mt-4" type="button">
+                  <i class="fa-solid fa-folder-open me-1"></i>
+                  Choose folder
+                </button>
+              </div>
+            </div>
+            <textarea id="markdownRaw" class="markdown-raw d-none" spellcheck="false"></textarea>
+            <div id="tinymceHost" class="tinymce-host"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="projectModalTitle">Project</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="d-flex align-items-end gap-3">
+                  <div class="flex-grow-1">
+                    <label class="form-label small text-secondary">Name</label>
+                    <input id="projectName" class="form-control" placeholder="Project name…" />
+                  </div>
+                  <div class="project-order-box text-end">
+                    <label class="form-label small text-secondary d-block">Order</label>
+                    <div class="d-flex align-items-center gap-2 justify-content-end">
+                      <button id="btnOrderUp" class="btn btn-outline-secondary btn-sm" type="button" title="Move up">
+                        <i class="fa-solid fa-arrow-up"></i>
+                      </button>
+                      <span id="projectOrderDisplay" class="project-order-number">1</span>
+                      <button id="btnOrderDown" class="btn btn-outline-secondary btn-sm" type="button" title="Move down">
+                        <i class="fa-solid fa-arrow-down"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label class="form-label small text-secondary">Icon</label>
+                <div id="iconGrid" class="icon-grid"></div>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label class="form-label small text-secondary">Color</label>
+                <div id="colorGrid" class="color-grid"></div>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                  <input id="colorPicker" type="color" class="form-control form-control-color" title="Choose custom color" />
+                  <input id="colorHex" class="form-control" placeholder="#RRGGBB" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-outline-danger d-none" id="btnDeleteProjectFooter">
+              <i class="fa-solid fa-trash me-1"></i>
+              Delete
+            </button>
+            <div class="d-flex gap-2 ms-auto">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <i class="fa-solid fa-xmark me-1"></i>
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary" id="btnProjectSave">
+                <i class="fa-solid fa-check me-1"></i>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">NoteMD</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <div class="display-6 mb-2"><i class="fa-solid fa-note-sticky text-primary"></i></div>
+            <p id="infoAppVersion" class="fw-semibold mb-3">Version</p>
+            <p class="mb-1">Created by <strong>Branko Pereira</strong></p>
+            <p class="text-secondary small mb-0">
+              AI-assisted development with Cursor (Composer)
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Import notes</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-secondary small mb-3">
+              Import <code>.txt</code>, <code>.md</code>, <code>.html</code>, <code>.json</code>, or
+              <code>.rtf</code> files into an <strong>Imports</strong> folder as Markdown notes. You can
+              select multiple files.
+            </p>
+            <div id="importDropZone" class="import-dropzone" tabindex="0" role="button" aria-label="Drop files or click to browse">
+              <i class="fa-solid fa-cloud-arrow-up fa-2x mb-2 text-secondary"></i>
+              <div class="fw-semibold">Drop files here</div>
+              <div class="text-secondary small">or click to browse</div>
+            </div>
+            <input
+              type="file"
+              id="importFileInput"
+              class="visually-hidden"
+              multiple
+              accept=".md,.markdown,.txt,.text,.html,.htm,.json,.rtf"
+            />
+            <ul id="importFileList" class="import-file-list list-unstyled small mt-3 mb-0"></ul>
+            <div id="importStatus" class="import-status small mt-2 text-secondary" aria-live="polite"></div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btnImportConfirm" disabled>Import</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="moveNotesModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Move notes</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-secondary small mb-3">
+              Choose a source folder and move notes to a destination folder. Notes on the right will be
+              moved when you save; notes on the left stay in the source folder.
+            </p>
+            <div class="row g-3 move-notes-columns">
+              <div class="col-md-6">
+                <label class="form-label small text-secondary" for="moveSourceProject">Source folder</label>
+                <select id="moveSourceProject" class="form-select form-select-sm mb-2"></select>
+                <div class="move-notes-panel">
+                  <div class="move-notes-panel-title small text-secondary">Notes in source</div>
+                  <ul id="moveSourceList" class="move-notes-list list-unstyled mb-0"></ul>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-secondary" for="moveDestProject">Destination folder</label>
+                <select id="moveDestProject" class="form-select form-select-sm mb-2"></select>
+                <div class="move-notes-panel">
+                  <div class="move-notes-panel-title small text-secondary">Notes to move</div>
+                  <ul id="moveDestList" class="move-notes-list list-unstyled mb-0"></ul>
+                </div>
+              </div>
+            </div>
+            <div id="moveNotesStatus" class="import-status small mt-2 text-secondary" aria-live="polite"></div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btnMoveNotesConfirm" disabled>Move notes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Export notes</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-secondary small mb-3">
+              Export one or many notes as Markdown, plain text, HTML, JSON, or RTF. The format applies to
+              every note in the export.
+            </p>
+            <div class="mb-3">
+              <label class="form-label small text-secondary" for="exportScopeSelect">Export</label>
+              <select id="exportScopeSelect" class="form-select"></select>
+            </div>
+            <div id="exportLayoutGroup" class="mb-3 d-none">
+              <span class="form-label small text-secondary d-block">Folder layout</span>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="exportLayout"
+                  id="exportLayoutStructure"
+                  value="structure"
+                  checked
+                />
+                <label class="form-check-label" for="exportLayoutStructure">
+                  Keep folder structure (project subfolders)
+                </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="exportLayout"
+                  id="exportLayoutFlat"
+                  value="flat"
+                />
+                <label class="form-check-label" for="exportLayoutFlat">
+                  Export all in one folder (no subfolders)
+                </label>
+              </div>
+            </div>
+            <div class="mb-0">
+              <label class="form-label small text-secondary" for="exportFormatSelect">Format</label>
+              <select id="exportFormatSelect" class="form-select"></select>
+            </div>
+            <div id="exportStatus" class="import-status small mt-2 text-secondary" aria-live="polite"></div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btnExportConfirm">Export…</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="aboutModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">About NoteMD</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-secondary small mb-3">
+              Runtime and library versions bundled with this build.
+            </p>
+            <div class="table-responsive">
+              <table class="table table-sm table-borderless about-versions-table mb-0">
+                <tbody id="aboutVersionsList"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../node_modules/marked/lib/marked.umd.js"></script>
+    <script src="../../node_modules/turndown/lib/turndown.browser.umd.js"></script>
+    <script src="../../node_modules/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+    <script src="../../node_modules/tinymce/tinymce.min.js"></script>
+    <script src="./notemd-checklist-plugin.js"></script>
+    <script src="./notemd-toolbar-plugin.js"></script>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
