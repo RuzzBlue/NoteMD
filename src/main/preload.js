@@ -43,9 +43,6 @@ contextBridge.exposeInMainWorld('notemd', {
   confirm: (payload) => ipcRenderer.invoke('app:confirm', payload),
   getAppInfo: () => ipcRenderer.invoke('app:getInfo'),
   getPreferences: () => ipcRenderer.invoke('app:getPreferences'),
-  getTinyMceConfig: () => ipcRenderer.invoke('app:getTinyMceConfig'),
-  setTinyMceApiKey: (apiKey) => ipcRenderer.invoke('app:setTinyMceApiKey', apiKey),
-  openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
   setDarkMode: (enabled) => ipcRenderer.invoke('app:setDarkMode', enabled),
 
   // events
@@ -54,7 +51,6 @@ contextBridge.exposeInMainWorld('notemd', {
   onReloadWorkspace: (cb) => ipcRenderer.on('ui:reloadWorkspace', () => cb()),
   onShowInfo: (cb) => ipcRenderer.on('ui:showInfo', () => cb()),
   onShowAbout: (cb) => ipcRenderer.on('ui:showAbout', () => cb()),
-  onShowTinyMceSetup: (cb) => ipcRenderer.on('ui:showTinyMceSetup', () => cb()),
   onShowImport: (cb) => ipcRenderer.on('ui:showImport', () => cb()),
   onShowExport: (cb) => ipcRenderer.on('ui:showExport', () => cb()),
   onShowMoveNotes: (cb) => ipcRenderer.on('ui:showMoveNotes', () => cb()),

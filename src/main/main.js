@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
@@ -191,35 +191,6 @@ async function saveDarkMode(enabled) {
   await saveAppConfig(config);
 }
 
-function normalizeTinyMceApiKey(value) {
-  const key = String(value || '').trim();
-  return key || null;
-}
-
-async function saveTinyMceApiKey(apiKey) {
-  const normalized = normalizeTinyMceApiKey(apiKey);
-  if (!normalized) {
-    return { ok: false, error: 'API key is required' };
-  }
-  const config = await loadAppConfig();
-  config.tinymceApiKey = normalized;
-  await saveAppConfig(config);
-  return { ok: true };
-}
-
-async function getTinyMceApiKeyFromConfig() {
-  const config = await loadAppConfig();
-  return normalizeTinyMceApiKey(config.tinymceApiKey);
-}
-
-async function bootstrapTinyMceKeyFromEnv() {
-  const envKey = normalizeTinyMceApiKey(process.env.TINYMCE_API_KEY);
-  if (!envKey) return;
-  const existing = await getTinyMceApiKeyFromConfig();
-  if (existing) return;
-  await saveTinyMceApiKey(envKey);
-}
-
 async function pathExists(p) {
   try {
     await fsp.access(p);
@@ -361,12 +332,6 @@ function createMenu() {
           }
         },
         {
-          label: 'Editor API Key…',
-          click: () => {
-            if (mainWindow) mainWindow.webContents.send('ui:showTinyMceSetup');
-          }
-        },
-        {
           label: 'About…',
           click: () => {
             if (mainWindow) mainWindow.webContents.send('ui:showAbout');
@@ -413,7 +378,6 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  await bootstrapTinyMceKeyFromEnv();
   createMenu();
   await createWindow();
 
@@ -495,26 +459,7 @@ ipcMain.handle('app:confirm', async (evt, payload = {}) => {
 
 ipcMain.handle('app:getPreferences', async () => {
   const config = await loadAppConfig();
-  const apiKey = normalizeTinyMceApiKey(config.tinymceApiKey);
-  return {
-    darkMode: !!config.darkMode,
-    hasTinyMceApiKey: !!apiKey
-  };
-});
-
-ipcMain.handle('app:getTinyMceConfig', async () => {
-  const apiKey = await getTinyMceApiKeyFromConfig();
-  return { configured: !!apiKey, apiKey };
-});
-
-ipcMain.handle('app:setTinyMceApiKey', async (_evt, apiKey) => saveTinyMceApiKey(apiKey));
-
-ipcMain.handle('app:openExternal', async (_evt, url) => {
-  if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
-    return { ok: false, error: 'Invalid URL' };
-  }
-  await shell.openExternal(url);
-  return { ok: true };
+  return { darkMode: !!config.darkMode };
 });
 
 ipcMain.handle('app:setDarkMode', async (_evt, enabled) => {

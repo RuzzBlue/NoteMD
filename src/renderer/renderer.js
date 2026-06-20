@@ -75,16 +75,7 @@ const UI = {
   moveSourceList: document.getElementById('moveSourceList'),
   moveDestList: document.getElementById('moveDestList'),
   moveNotesStatus: document.getElementById('moveNotesStatus'),
-  btnMoveNotesConfirm: document.getElementById('btnMoveNotesConfirm'),
-
-  tinymceSetupModalEl: document.getElementById('tinymceSetupModal'),
-  tinymceSetupInput: document.getElementById('tinymceSetupInput'),
-  tinymceSetupShowKey: document.getElementById('tinymceSetupShowKey'),
-  tinymceSetupStatus: document.getElementById('tinymceSetupStatus'),
-  btnTinyMceSetupSave: document.getElementById('btnTinyMceSetupSave'),
-  btnTinyMceSetupCancel: document.getElementById('btnTinyMceSetupCancel'),
-  btnTinyMceSetupClose: document.getElementById('btnTinyMceSetupClose'),
-  linkTinyMceSignup: document.getElementById('linkTinyMceSignup')
+  btnMoveNotesConfirm: document.getElementById('btnMoveNotesConfirm')
 };
 
 const IMPORTS_PROJECT = 'Imports';
@@ -109,7 +100,6 @@ const state = {
   selectedNote: null,
   markdownMode: false,
   darkMode: false,
-  tinymceApiKey: null,
   dirty: false,
   hasTemp: false,
   projectSort: 'custom',
@@ -137,9 +127,6 @@ const REPLACEMENT_NOTE = 'Untitled 1.md';
 
 /** Lazy init — TinyMCE must not initialize while #tinymceHost is hidden (breaks focus/iframe). */
 let editorInitPromise = null;
-let tinyMceSetupPromise = null;
-
-const TINYMCE_SIGNUP_URL = 'https://www.tiny.cloud/auth/signup/';
 let editorResizeObserver = null;
 
 const ICONS = [
@@ -604,118 +591,6 @@ async function loadPreferences() {
   applyAppTheme(!!prefs?.darkMode);
 }
 
-async function loadTinyMceConfig() {
-  if (!window.notemd?.getTinyMceConfig) return;
-  const config = await window.notemd.getTinyMceConfig();
-  state.tinymceApiKey = config?.apiKey || null;
-}
-
-function setTinyMceSetupStatus(message, tone = 'secondary') {
-  if (!UI.tinymceSetupStatus) return;
-  UI.tinymceSetupStatus.textContent = message || '';
-  UI.tinymceSetupStatus.className = `import-status small mt-2 text-${tone}`;
-}
-
-function showTinyMceSetupModal({ allowCancel = false } = {}) {
-  if (tinyMceSetupPromise) return tinyMceSetupPromise;
-
-  tinyMceSetupPromise = new Promise((resolve) => {
-    if (!UI.tinymceSetupModalEl) {
-      tinyMceSetupPromise = null;
-      resolve(false);
-      return;
-    }
-
-    let settled = false;
-
-    UI.tinymceSetupInput.value = state.tinymceApiKey || '';
-    UI.tinymceSetupInput.type = 'password';
-    if (UI.tinymceSetupShowKey) UI.tinymceSetupShowKey.checked = false;
-    setTinyMceSetupStatus('');
-
-    UI.btnTinyMceSetupCancel?.classList.toggle('d-none', !allowCancel);
-    UI.btnTinyMceSetupClose?.classList.toggle('d-none', !allowCancel);
-
-    const modal = bootstrap.Modal.getOrCreateInstance(UI.tinymceSetupModalEl, {
-      backdrop: 'static',
-      keyboard: false
-    });
-
-    const cleanup = () => {
-      UI.btnTinyMceSetupSave?.removeEventListener('click', onSave);
-      UI.btnTinyMceSetupCancel?.removeEventListener('click', onCancel);
-      UI.tinymceSetupModalEl.removeEventListener('hidden.bs.modal', onHidden);
-      tinyMceSetupPromise = null;
-    };
-
-    const finish = (result) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(result);
-    };
-
-    const onHidden = () => {
-      finish(false);
-    };
-
-    const onCancel = () => {
-      modal.hide();
-      finish(false);
-    };
-
-    const onSave = async () => {
-      const key = UI.tinymceSetupInput.value.trim();
-      if (!key) {
-        setTinyMceSetupStatus('Please enter your TinyMCE API key.', 'danger');
-        UI.tinymceSetupInput.focus();
-        return;
-      }
-
-      UI.btnTinyMceSetupSave.disabled = true;
-      setTinyMceSetupStatus('Saving…', 'secondary');
-      try {
-        const res = await window.notemd.setTinyMceApiKey(key);
-        if (!res?.ok) {
-          setTinyMceSetupStatus(res?.error || 'Failed to save API key.', 'danger');
-          return;
-        }
-        state.tinymceApiKey = key;
-        modal.hide();
-        finish(true);
-      } catch (err) {
-        setTinyMceSetupStatus(err?.message || 'Failed to save API key.', 'danger');
-      } finally {
-        UI.btnTinyMceSetupSave.disabled = false;
-      }
-    };
-
-    UI.btnTinyMceSetupSave?.addEventListener('click', onSave);
-    UI.btnTinyMceSetupCancel?.addEventListener('click', onCancel);
-    UI.tinymceSetupModalEl.addEventListener('hidden.bs.modal', onHidden, { once: false });
-
-    modal.show();
-    window.setTimeout(() => UI.tinymceSetupInput?.focus(), 150);
-  });
-
-  return tinyMceSetupPromise;
-}
-
-async function ensureTinyMceSetup({ allowCancel = false } = {}) {
-  if (state.tinymceApiKey) return true;
-  await loadTinyMceConfig();
-  if (state.tinymceApiKey) return true;
-  return showTinyMceSetupModal({ allowCancel });
-}
-
-async function openTinyMceSignup() {
-  if (window.notemd?.openExternal) {
-    await window.notemd.openExternal(TINYMCE_SIGNUP_URL);
-    return;
-  }
-  window.open(TINYMCE_SIGNUP_URL, '_blank', 'noopener,noreferrer');
-}
-
 async function toggleDarkMode() {
   const next = !state.darkMode;
   applyAppTheme(next);
@@ -788,9 +663,6 @@ function focusEditorOnly(editor = getEditor()) {
 }
 
 async function ensureEditorReady() {
-  const setupOk = await ensureTinyMceSetup({ allowCancel: false });
-  if (!setupOk) return;
-
   if (getEditor()) {
     syncEditorHeight();
     return;
@@ -815,9 +687,6 @@ async function initTinyMCE(editorHeight) {
   if (typeof tinymce === 'undefined') {
     throw new Error('TinyMCE failed to load');
   }
-  if (!state.tinymceApiKey) {
-    throw new Error('TinyMCE API key is not configured');
-  }
 
   UI.tinymceHost.innerHTML = '<textarea id="tinymceEditor"></textarea>';
 
@@ -825,7 +694,6 @@ async function initTinyMCE(editorHeight) {
 
   await tinymce.init({
     selector: '#tinymceEditor',
-    api_key: state.tinymceApiKey,
     license_key: 'gpl',
     base_url: baseUrl,
     suffix: '.min',
@@ -1574,6 +1442,7 @@ async function applyRootPath(rootPath, { alertOnError = true } = {}) {
   state.projectsOnDisk = set.projectsOnDisk || [];
   UI.rootPath.textContent = state.rootPath || '';
   showEmptyState(false);
+  await ensureEditorReady();
   try {
     await window.notemd?.focusWindow?.();
   } catch (_) {
@@ -1795,7 +1664,6 @@ function bindEvents() {
     });
     window.notemd.onShowInfo(() => showInfoModal());
     window.notemd.onShowAbout(() => showAboutModal());
-    window.notemd.onShowTinyMceSetup(() => openTinyMceSetupFromMenu());
     window.notemd.onShowImport(() => showImportModal());
     window.notemd.onShowExport(() => showExportModal());
     window.notemd.onShowMoveNotes(() => openMoveNotesModal());
@@ -1804,23 +1672,6 @@ function bindEvents() {
   bindImportModal();
   bindExportModal();
   bindMoveNotesModal();
-
-  UI.linkTinyMceSignup?.addEventListener('click', (e) => {
-    e.preventDefault();
-    openTinyMceSignup().catch((err) => console.error(err));
-  });
-
-  UI.tinymceSetupShowKey?.addEventListener('change', () => {
-    if (!UI.tinymceSetupInput) return;
-    UI.tinymceSetupInput.type = UI.tinymceSetupShowKey.checked ? 'text' : 'password';
-  });
-
-  UI.tinymceSetupInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      UI.btnTinyMceSetupSave?.click();
-    }
-  });
 }
 
 async function getAppInfo() {
@@ -2493,19 +2344,6 @@ async function showAboutModal() {
   bootstrap.Modal.getOrCreateInstance(UI.aboutModalEl).show();
 }
 
-async function openTinyMceSetupFromMenu() {
-  const previous = state.tinymceApiKey;
-  const ok = await showTinyMceSetupModal({ allowCancel: true });
-  if (!ok || state.tinymceApiKey === previous) return;
-
-  const editor = getEditor();
-  if (editor) {
-    await tinymce.remove('#tinymceEditor');
-  }
-  editorInitPromise = null;
-  await reinitTinyMCE();
-}
-
 async function boot() {
   if (!window.notemd) {
     throw new Error('Preload bridge (window.notemd) is missing');
@@ -2520,13 +2358,9 @@ async function boot() {
   showEmptyState(true);
 
   await loadPreferences();
-  await loadTinyMceConfig();
 
   const ok = await initializeRoot({ promptIfMissing: true });
   if (!ok) return;
-
-  const setupOk = await ensureTinyMceSetup({ allowCancel: false });
-  if (!setupOk) return;
 
   await ensureWorkspaceSelection({ forceFirst: true });
   ensureEditorResizeObserver();

@@ -13,7 +13,6 @@ A desktop note-taking app built with Electron. Pick a folder on your disk — yo
 - **Import notes** — drag-and-drop or pick files (`.txt`, `.md`, `.html`, `.json`, `.rtf`) → saved under `notes/Imports/`
 - **Export notes** — current note, whole folder, or everything; output as Markdown, plain text, HTML, JSON, or RTF
 - **Move notes** — shuttle notes between project folders (duplicates renamed automatically)
-- **First-run setup** — after choosing your notes folder, a one-time dialog walks you through adding a free TinyMCE API key
 - **Remembers your root folder** — last path stored in `%AppData%/Roaming/NoteMD/config.json`
 
 ## Quick Start
@@ -23,13 +22,7 @@ npm install
 npm start
 ```
 
-On first launch:
-
-1. Pick a root folder for your notes
-2. Enter your **free TinyMCE API key** in the setup dialog (see [Security & API Keys](#security--api-keys))
-3. Start writing — the app restores your folder and key on every startup
-
-**Change your API key later:** Help → **Editor API Key…**
+On first launch, pick a root folder for your notes. The app restores that path on every startup.
 
 **Development mode** (opens DevTools):
 
@@ -92,7 +85,7 @@ Notes are plain Markdown — open them in any editor, back them up with any sync
 | **View** | Toggle sidebar, window sizing, full screen |
 | **Editor** | Rich Text / Markdown / HTML source, full-screen editor |
 | **Dev** | Developer tools |
-| **Help** | Info, Editor API key, About |
+| **Help** | Info, About |
 
 ## App Icon
 
@@ -143,44 +136,3 @@ The TinyMCE setup is a known-good baseline — keep these pieces together when c
 | Turndown + `normalizeTaskListsForTinyMCE` | Markdown ↔ checklist HTML round-trip |
 
 **Toolbar:** row 1 = undo, blocks, font size, styles, colors, align, ⋮ toggle · row 2 = lists, links/media, code/preview/fullscreen, removeformat, help.
-
-## Security & API Keys
-
-**This repo contains no API keys or secrets.** Keys are stored locally on each user's PC only.
-
-### First-time users (installed app)
-
-After you choose your notes folder, NoteMD shows a **TinyMCE setup** dialog. You need a free API key before the rich-text editor works:
-
-1. Click the [tiny.cloud](https://www.tiny.cloud/auth/signup/) link in the dialog (or sign up in your browser)
-2. Create a **free** account — no credit card required
-3. Open your [Tiny Cloud dashboard](https://www.tiny.cloud/my-account/dashboard/) and copy your API key
-4. Paste it into the dialog and click **Save and continue**
-
-The key is saved in `%AppData%/Roaming/NoteMD/config.json` on your machine. It is never committed to GitHub.
-
-To update it later: **Help → Editor API Key…**
-
-### Developers (running from source)
-
-Same first-run dialog appears unless you set the key in your shell before starting:
-
-```bash
-set TINYMCE_API_KEY=your-free-tiny-cloud-key-here
-npm start
-```
-
-(PowerShell: `$env:TINYMCE_API_KEY="your-key"; npm start`)
-
-### What is not a secret
-
-| Value | What it is |
-|-------|------------|
-| `license_key: 'gpl'` in `renderer.js` | TinyMCE open-source license declaration — safe in public code |
-| `%AppData%/Roaming/NoteMD/config.json` | Local preferences: notes folder, dark mode, **your** API key |
-
-### Keeping secrets out of git
-
-- `.env` and `.env.*` are gitignored
-- Never commit `config.json` from AppData — it is per-user local storage
-- Each person uses their own free TinyMCE key; do not share keys in the repository

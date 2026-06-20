@@ -375,57 +375,6 @@
       </div>
     </div>
 
-    <div class="modal fade" id="tinymceSetupModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">TinyMCE editor setup</h5>
-            <button
-              type="button"
-              class="btn-close d-none"
-              id="btnTinyMceSetupClose"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <p class="text-secondary small mb-3">
-              NoteMD uses TinyMCE for rich text editing. Each user needs a free API key from Tiny Cloud —
-              it is stored only on this computer and never uploaded to GitHub.
-            </p>
-            <ol class="small text-secondary mb-3 ps-3">
-              <li class="mb-1">
-                Create a free account at
-                <a href="#" id="linkTinyMceSignup" class="link-primary">tiny.cloud</a>
-              </li>
-              <li class="mb-1">Open your dashboard and copy your API key</li>
-              <li>Paste it below, then click Save</li>
-            </ol>
-            <label class="form-label small text-secondary" for="tinymceSetupInput">TinyMCE API key</label>
-            <input
-              id="tinymceSetupInput"
-              class="form-control font-monospace"
-              type="password"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Paste your API key here"
-            />
-            <div class="form-check mt-2">
-              <input class="form-check-input" type="checkbox" id="tinymceSetupShowKey" />
-              <label class="form-check-label small" for="tinymceSetupShowKey">Show key</label>
-            </div>
-            <div id="tinymceSetupStatus" class="import-status small mt-2 text-secondary" aria-live="polite"></div>
-          </div>
-          <div class="modal-footer justify-content-between">
-            <button type="button" class="btn btn-outline-secondary d-none" id="btnTinyMceSetupCancel" data-bs-dismiss="modal">
-              Cancel
-            </button>
-            <button type="button" class="btn btn-primary" id="btnTinyMceSetupSave">Save and continue</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="modal fade" id="aboutModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
