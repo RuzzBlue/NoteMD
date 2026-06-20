@@ -2,6 +2,9 @@
 
 A desktop note-taking app built with Electron. Pick a folder on your disk — your notes live there as plain `.md` files, organized into projects. Rich editing with TinyMCE, autosave, dark mode, and full import/export.
 
+![Uploading NoteMD_CAPvCcSDCc.gif…]()
+
+
 ## Features
 
 - **Local-first storage** — projects are folders, notes are Markdown files on your filesystem
