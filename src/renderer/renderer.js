@@ -9,6 +9,7 @@ const UI = {
   mainArea: document.querySelector('.main-area'),
   projectSort: document.getElementById('projectSort'),
   btnAddProject: document.getElementById('btnAddProject'),
+  btnAddGroup: document.getElementById('btnAddGroup'),
   projectList: document.getElementById('projectList'),
 
   tabsLeft: document.getElementById('tabsLeft'),
@@ -47,6 +48,20 @@ const UI = {
   btnOrderUp: document.getElementById('btnOrderUp'),
   btnOrderDown: document.getElementById('btnOrderDown'),
   btnProjectSave: document.getElementById('btnProjectSave'),
+  projectGroupSelect: document.getElementById('projectGroupSelect'),
+
+  groupModalEl: document.getElementById('groupModal'),
+  groupModalTitle: document.getElementById('groupModalTitle'),
+  btnDeleteGroupFooter: document.getElementById('btnDeleteGroupFooter'),
+  groupOrderDisplay: document.getElementById('groupOrderDisplay'),
+  groupName: document.getElementById('groupName'),
+  groupIconGrid: document.getElementById('groupIconGrid'),
+  groupColorGrid: document.getElementById('groupColorGrid'),
+  groupColorPicker: document.getElementById('groupColorPicker'),
+  groupColorHex: document.getElementById('groupColorHex'),
+  btnGroupOrderUp: document.getElementById('btnGroupOrderUp'),
+  btnGroupOrderDown: document.getElementById('btnGroupOrderDown'),
+  btnGroupSave: document.getElementById('btnGroupSave'),
 
   infoModalEl: document.getElementById('infoModal'),
   infoAppVersion: document.getElementById('infoAppVersion'),
@@ -109,6 +124,17 @@ const state = {
     name: '',
     icon: 'fa-folder',
     color: '#2b6cb0',
+    groupId: null,
+    move: 0,
+    baseOrder: 1,
+    orderDelta: 0
+  },
+  groupModal: {
+    mode: 'create',
+    id: null,
+    name: '',
+    icon: 'fa-folder-tree',
+    color: '#6366f1',
     move: 0,
     baseOrder: 1,
     orderDelta: 0
@@ -876,13 +902,14 @@ function setSidebarVisible(visible) {
   window.notemd?.setSidebarVisible?.(visible);
 }
 
-function sortedProjects() {
-  const meta = state.data?.folders || {};
-  const projects = state.projectsOnDisk.map((name) => ({
-    name,
-    meta: meta[name] || { color: '#2b6cb0', icon: 'fa-folder', order: 999999, createdAt: '1970-01-01T00:00:00.000Z' }
-  }));
+function sortedGroups() {
+  const groups = state.data?.groups || {};
+  return Object.entries(groups)
+    .map(([id, meta]) => ({ id, meta: { ...meta } }))
+    .sort((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0));
+}
 
+function sortProjectList(projects) {
   switch (state.projectSort) {
     case 'az':
       projects.sort((a, b) => a.name.localeCompare(b.name));
@@ -904,32 +931,99 @@ function sortedProjects() {
   return projects;
 }
 
-function renderProjects() {
-  const items = sortedProjects();
-  UI.projectList.innerHTML = items
-    .map((p) => {
-      const active = p.name === state.selectedProject ? 'active' : '';
-      const icon = p.meta.icon || 'fa-folder';
-      const color = p.meta.color || '#2b6cb0';
-      return `
-        <div class="project-item ${active}" data-project="${escapeHtml(p.name)}" style="border-left: 6px solid ${escapeHtml(
-        color
-      )};">
-          <div class="project-swatch" style="background:${escapeHtml(color)};" title="Order ${escapeHtml(p.meta.order ?? '')}">
-            <span class="project-order-badge">${escapeHtml(p.meta.order ?? '')}</span>
-          </div>
-          <div class="project-name">
-            <div class="name fw-semibold"><i class="fa-solid ${escapeHtml(icon)} me-2"></i>${escapeHtml(p.name)}</div>
-          </div>
-          <div class="project-actions">
-            <button class="btn btn-sm btn-outline-secondary" data-edit="${escapeHtml(p.name)}" title="Edit">
-              <i class="fa-solid fa-pen"></i>
-            </button>
-          </div>
+function sortedProjects() {
+  const meta = state.data?.folders || {};
+  const projects = state.projectsOnDisk.map((name) => ({
+    name,
+    meta: meta[name] || {
+      color: '#2b6cb0',
+      icon: 'fa-folder',
+      order: 999999,
+      groupId: null,
+      createdAt: '1970-01-01T00:00:00.000Z'
+    }
+  }));
+  return sortProjectList(projects);
+}
+
+function projectsInGroup(groupId) {
+  return sortedProjects().filter((p) => (p.meta.groupId || null) === groupId);
+}
+
+function ungroupedProjects() {
+  return sortedProjects().filter((p) => !p.meta.groupId);
+}
+
+function buildProjectItemHtml(project, { nested = false } = {}) {
+  const active = project.name === state.selectedProject ? 'active' : '';
+  const icon = project.meta.icon || 'fa-folder';
+  const color = project.meta.color || '#2b6cb0';
+  const nestedClass = nested ? ' is-nested' : '';
+  return `
+    <div class="project-item${nestedClass} ${active}" data-project="${escapeHtml(project.name)}" style="border-left: 6px solid ${escapeHtml(
+    color
+  )};">
+      <div class="project-swatch" style="background:${escapeHtml(color)};" title="Order ${escapeHtml(project.meta.order ?? '')}">
+        <span class="project-order-badge">${escapeHtml(project.meta.order ?? '')}</span>
+      </div>
+      <div class="project-name">
+        <div class="name fw-semibold"><i class="fa-solid ${escapeHtml(icon)} me-2"></i>${escapeHtml(project.name)}</div>
+      </div>
+      <div class="project-actions">
+        <button class="btn btn-sm btn-outline-secondary" data-edit="${escapeHtml(project.name)}" title="Edit">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function buildGroupHeaderHtml(group) {
+  const icon = group.meta.icon || 'fa-folder-tree';
+  const color = group.meta.color || '#6366f1';
+  const expanded = group.meta.expanded !== false;
+  const childCount = projectsInGroup(group.id).length;
+  const chevron = expanded ? 'fa-chevron-down' : 'fa-chevron-right';
+  return `
+    <div class="project-group" data-group-id="${escapeHtml(group.id)}">
+      <div class="project-group-header" data-group-header="${escapeHtml(group.id)}" style="border-left: 6px solid ${escapeHtml(color)};">
+        <button type="button" class="project-group-toggle" data-toggle-group="${escapeHtml(group.id)}" title="${expanded ? 'Collapse' : 'Expand'}" aria-label="${expanded ? 'Collapse group' : 'Expand group'}">
+          <i class="fa-solid ${chevron}"></i>
+        </button>
+        <div class="project-swatch" style="background:${escapeHtml(color)};">
+          <i class="fa-solid ${escapeHtml(icon)}" style="color:#fff;font-size:12px;"></i>
         </div>
-      `;
-    })
-    .join('');
+        <div class="project-name">
+          <div class="name fw-semibold">${escapeHtml(group.meta.name || 'Group')}</div>
+        </div>
+        <span class="project-group-count">${childCount} project${childCount === 1 ? '' : 's'}</span>
+        <div class="project-actions">
+          <button class="btn btn-sm btn-outline-secondary" data-edit-group="${escapeHtml(group.id)}" title="Edit group">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+        </div>
+      </div>
+      <div class="project-group-children${expanded ? '' : ' is-collapsed'}" data-group-children="${escapeHtml(group.id)}">
+        ${projectsInGroup(group.id).map((p) => buildProjectItemHtml(p, { nested: true })).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderProjects() {
+  const groups = sortedGroups();
+  const ungrouped = ungroupedProjects();
+  const parts = [];
+
+  for (const group of groups) {
+    parts.push(buildGroupHeaderHtml(group));
+  }
+
+  for (const project of ungrouped) {
+    parts.push(buildProjectItemHtml(project));
+  }
+
+  UI.projectList.innerHTML = parts.join('');
 }
 
 function renderTabs() {
@@ -1178,6 +1272,20 @@ function shiftProjectModalOrder(delta) {
   updateProjectOrderDisplay();
 }
 
+function populateProjectGroupSelect(selectedGroupId = null) {
+  if (!UI.projectGroupSelect) return;
+  const groups = sortedGroups();
+  const options = [
+    '<option value="">No group (top level)</option>',
+    ...groups.map(
+      (g) =>
+        `<option value="${escapeHtml(g.id)}">${escapeHtml(g.meta.name || 'Group')}</option>`
+    )
+  ];
+  UI.projectGroupSelect.innerHTML = options.join('');
+  UI.projectGroupSelect.value = selectedGroupId || '';
+}
+
 function openProjectModalCreate() {
   state.projectModal = {
     mode: 'create',
@@ -1185,6 +1293,7 @@ function openProjectModalCreate() {
     name: '',
     icon: 'fa-folder',
     color: '#2b6cb0',
+    groupId: null,
     move: 0,
     baseOrder: 1,
     orderDelta: 0
@@ -1192,6 +1301,7 @@ function openProjectModalCreate() {
   UI.projectModalTitle.textContent = 'Create Project';
   UI.btnDeleteProjectFooter?.classList.add('d-none');
   UI.projectName.value = '';
+  populateProjectGroupSelect(null);
   setIconSelection(state.projectModal.icon);
   setColorSelection(state.projectModal.color);
   resetProjectModalOrder();
@@ -1206,6 +1316,7 @@ function openProjectModalEdit(projectName) {
     name: projectName,
     icon: meta?.icon || 'fa-folder',
     color: meta?.color || '#2b6cb0',
+    groupId: meta?.groupId || null,
     move: 0,
     baseOrder: meta?.order || 1,
     orderDelta: 0
@@ -1213,6 +1324,7 @@ function openProjectModalEdit(projectName) {
   UI.projectModalTitle.textContent = 'Edit Project';
   UI.btnDeleteProjectFooter?.classList.remove('d-none');
   UI.projectName.value = state.projectModal.name;
+  populateProjectGroupSelect(state.projectModal.groupId);
   setIconSelection(state.projectModal.icon);
   setColorSelection(state.projectModal.color);
   resetProjectModalOrder();
@@ -1229,6 +1341,166 @@ function buildColorGrid() {
   UI.colorGrid.innerHTML = PALETTE.map((c) => {
     return `<div class="color-tile" data-color="${escapeHtml(c)}" style="background:${escapeHtml(c)};"></div>`;
   }).join('');
+}
+
+function buildGroupIconGrid() {
+  if (!UI.groupIconGrid) return;
+  UI.groupIconGrid.innerHTML = ICONS.map((ic) => {
+    return `<div class="icon-tile" data-icon="${escapeHtml(ic)}"><i class="fa-solid ${escapeHtml(ic)}"></i></div>`;
+  }).join('');
+}
+
+function buildGroupColorGrid() {
+  if (!UI.groupColorGrid) return;
+  UI.groupColorGrid.innerHTML = PALETTE.map((c) => {
+    return `<div class="color-tile" data-color="${escapeHtml(c)}" style="background:${escapeHtml(c)};"></div>`;
+  }).join('');
+}
+
+function updateGroupOrderDisplay() {
+  if (!UI.groupOrderDisplay) return;
+  const base = state.groupModal.baseOrder || 1;
+  const delta = state.groupModal.orderDelta || 0;
+  UI.groupOrderDisplay.textContent = String(Math.max(1, base + delta));
+}
+
+function resetGroupModalOrder() {
+  state.groupModal.orderDelta = 0;
+  updateGroupOrderDisplay();
+}
+
+function shiftGroupModalOrder(delta) {
+  state.groupModal.orderDelta = (state.groupModal.orderDelta || 0) + delta;
+  updateGroupOrderDisplay();
+}
+
+function setGroupIconSelection(icon) {
+  state.groupModal.icon = icon;
+  [...(UI.groupIconGrid?.querySelectorAll('.icon-tile') || [])].forEach((el) => {
+    el.classList.toggle('active', el.getAttribute('data-icon') === icon);
+  });
+}
+
+function setGroupColorSelection(color) {
+  state.groupModal.color = color;
+  if (UI.groupColorPicker) UI.groupColorPicker.value = color;
+  if (UI.groupColorHex) UI.groupColorHex.value = color;
+  [...(UI.groupColorGrid?.querySelectorAll('.color-tile') || [])].forEach((el) => {
+    el.classList.toggle('active', el.getAttribute('data-color') === color);
+  });
+}
+
+function openGroupModalCreate() {
+  state.groupModal = {
+    mode: 'create',
+    id: null,
+    name: '',
+    icon: 'fa-folder-tree',
+    color: '#6366f1',
+    move: 0,
+    baseOrder: sortedGroups().length + 1,
+    orderDelta: 0
+  };
+  UI.groupModalTitle.textContent = 'Create Group';
+  UI.btnDeleteGroupFooter?.classList.add('d-none');
+  UI.groupName.value = '';
+  setGroupIconSelection(state.groupModal.icon);
+  setGroupColorSelection(state.groupModal.color);
+  resetGroupModalOrder();
+  bootstrap.Modal.getOrCreateInstance(UI.groupModalEl).show();
+}
+
+function openGroupModalEdit(groupId) {
+  const meta = state.data?.groups?.[groupId];
+  if (!meta) return;
+  state.groupModal = {
+    mode: 'edit',
+    id: groupId,
+    name: meta.name || '',
+    icon: meta.icon || 'fa-folder-tree',
+    color: meta.color || '#6366f1',
+    move: 0,
+    baseOrder: meta.order || 1,
+    orderDelta: 0
+  };
+  UI.groupModalTitle.textContent = 'Edit Group';
+  UI.btnDeleteGroupFooter?.classList.remove('d-none');
+  UI.groupName.value = state.groupModal.name;
+  setGroupIconSelection(state.groupModal.icon);
+  setGroupColorSelection(state.groupModal.color);
+  resetGroupModalOrder();
+  bootstrap.Modal.getOrCreateInstance(UI.groupModalEl).show();
+}
+
+async function saveGroupModal() {
+  const name = UI.groupName.value.trim();
+  const color = state.groupModal.color;
+  const icon = state.groupModal.icon;
+
+  if (state.groupModal.mode === 'create') {
+    const res = await window.notemd.createGroup({ name, color, icon });
+    if (res.ok && res.data) state.data = res.data;
+  } else {
+    let res = await window.notemd.updateGroup({
+      id: state.groupModal.id,
+      name,
+      color,
+      icon,
+      move: 0
+    });
+    if (res.ok && res.data) state.data = res.data;
+
+    const steps = Math.abs(state.groupModal.orderDelta || 0);
+    const dir = state.groupModal.orderDelta < 0 ? -1 : 1;
+    for (let i = 0; i < steps; i++) {
+      res = await window.notemd.updateGroup({
+        id: state.groupModal.id,
+        name,
+        color,
+        icon,
+        move: dir
+      });
+      if (res.ok && res.data) state.data = res.data;
+    }
+  }
+
+  state.groupModal.orderDelta = 0;
+  bootstrap.Modal.getOrCreateInstance(UI.groupModalEl).hide();
+  await refreshProjects();
+}
+
+async function deleteGroupFromModal() {
+  if (state.groupModal.mode !== 'edit' || !state.groupModal.id) return;
+  const groupId = state.groupModal.id;
+  const groupName = state.data?.groups?.[groupId]?.name || 'Group';
+  const childCount = projectsInGroup(groupId).length;
+  const ok = await confirmDestructive({
+    title: 'Delete group',
+    message:
+      `Delete group "${groupName}"?\n\n` +
+      (childCount
+        ? `${childCount} project(s) will move to the top level (ungrouped).`
+        : 'This group is empty.')
+  });
+  if (!ok) return;
+
+  bootstrap.Modal.getOrCreateInstance(UI.groupModalEl).hide();
+  await waitForModalHidden(UI.groupModalEl);
+
+  const res = await window.notemd.deleteGroup(groupId);
+  if (res.ok && res.data) state.data = res.data;
+  await refreshProjects();
+}
+
+async function toggleGroupExpanded(groupId) {
+  const meta = state.data?.groups?.[groupId];
+  if (!meta) return;
+  const expanded = meta.expanded !== false;
+  const res = await window.notemd.updateGroup({ id: groupId, expanded: !expanded });
+  if (res.ok && res.data) {
+    state.data = res.data;
+    renderProjects();
+  }
 }
 
 function setIconSelection(icon) {
@@ -1251,15 +1523,17 @@ async function saveProjectModal() {
   const name = UI.projectName.value.trim();
   const color = state.projectModal.color;
   const icon = state.projectModal.icon;
+  const groupId = UI.projectGroupSelect?.value || null;
 
   if (state.projectModal.mode === 'create') {
-    await window.notemd.createProject({ name, color, icon });
+    await window.notemd.createProject({ name, color, icon, groupId });
   } else {
     await window.notemd.updateProject({
       originalName: state.projectModal.originalName,
       name,
       color,
       icon,
+      groupId,
       move: 0
     });
 
@@ -1271,6 +1545,7 @@ async function saveProjectModal() {
         name,
         color,
         icon,
+        groupId,
         move: dir
       });
     }
@@ -1568,7 +1843,26 @@ function bindEvents() {
     openProjectModalCreate();
   });
 
+  UI.btnAddGroup?.addEventListener('click', async () => {
+    if (!(await ensureRoot())) return;
+    openGroupModalCreate();
+  });
+
   UI.projectList.addEventListener('click', async (e) => {
+    const toggleBtn = e.target.closest('[data-toggle-group]');
+    if (toggleBtn) {
+      e.stopPropagation();
+      await toggleGroupExpanded(toggleBtn.getAttribute('data-toggle-group'));
+      return;
+    }
+
+    const editGroupBtn = e.target.closest('[data-edit-group]');
+    if (editGroupBtn) {
+      e.stopPropagation();
+      openGroupModalEdit(editGroupBtn.getAttribute('data-edit-group'));
+      return;
+    }
+
     const editBtn = e.target.closest('[data-edit]');
     if (editBtn) {
       openProjectModalEdit(editBtn.getAttribute('data-edit'));
@@ -1649,6 +1943,26 @@ function bindEvents() {
   UI.btnOrderDown.addEventListener('click', () => shiftProjectModalOrder(1));
   UI.btnProjectSave.addEventListener('click', async () => saveProjectModal());
   UI.btnDeleteProjectFooter?.addEventListener('click', async () => deleteProjectFromModal());
+
+  UI.groupIconGrid?.addEventListener('click', (e) => {
+    const tile = e.target.closest('[data-icon]');
+    if (!tile) return;
+    setGroupIconSelection(tile.getAttribute('data-icon'));
+  });
+  UI.groupColorGrid?.addEventListener('click', (e) => {
+    const tile = e.target.closest('[data-color]');
+    if (!tile) return;
+    setGroupColorSelection(tile.getAttribute('data-color'));
+  });
+  UI.groupColorPicker?.addEventListener('input', () => setGroupColorSelection(UI.groupColorPicker.value));
+  UI.groupColorHex?.addEventListener('change', () => {
+    const v = UI.groupColorHex.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) setGroupColorSelection(v);
+  });
+  UI.btnGroupOrderUp?.addEventListener('click', () => shiftGroupModalOrder(-1));
+  UI.btnGroupOrderDown?.addEventListener('click', () => shiftGroupModalOrder(1));
+  UI.btnGroupSave?.addEventListener('click', async () => saveGroupModal());
+  UI.btnDeleteGroupFooter?.addEventListener('click', async () => deleteGroupFromModal());
 
   if (window.notemd) {
     window.notemd.onSidebarVisible((v) => setSidebarVisible(v));
@@ -1828,11 +2142,24 @@ function noteDisplayName(noteFile) {
   return String(noteFile || '').replace(/\.md$/i, '') || 'Untitled';
 }
 
+function getSelectedProjectGroupId() {
+  if (!state.selectedProject) return null;
+  return state.data?.folders?.[state.selectedProject]?.groupId || null;
+}
+
+function getSelectedProjectGroupName() {
+  const groupId = getSelectedProjectGroupId();
+  if (!groupId) return null;
+  return state.data?.groups?.[groupId]?.name || null;
+}
+
 function populateExportScopeOptions() {
   if (!UI.exportScopeSelect) return;
 
   const currentNote = state.selectedNote ? noteDisplayName(state.selectedNote) : null;
   const currentFolder = state.selectedProject || null;
+  const currentGroupId = getSelectedProjectGroupId();
+  const currentGroupName = getSelectedProjectGroupName();
 
   const options = [];
 
@@ -1852,6 +2179,16 @@ function populateExportScopeOptions() {
     });
   }
 
+  if (currentGroupId && currentGroupName) {
+    const count = projectsInGroup(currentGroupId).length;
+    options.push({
+      value: 'group',
+      label: `Whole group: ${currentGroupName} (${count} project${count === 1 ? '' : 's'})`,
+      enabled: true,
+      groupId: currentGroupId
+    });
+  }
+
   options.push({
     value: 'all',
     label: 'All notes',
@@ -1861,7 +2198,7 @@ function populateExportScopeOptions() {
   UI.exportScopeSelect.innerHTML = options
     .map(
       (o) =>
-        `<option value="${escapeHtml(o.value)}" ${o.enabled ? '' : 'disabled'}>${escapeHtml(o.label)}</option>`
+        `<option value="${escapeHtml(o.value)}" data-group-id="${escapeHtml(o.groupId || '')}" ${o.enabled ? '' : 'disabled'}>${escapeHtml(o.label)}</option>`
     )
     .join('');
 
@@ -1883,7 +2220,7 @@ function getExportLayout() {
 
 function updateExportScopeUi() {
   const scope = UI.exportScopeSelect?.value || 'current';
-  const isBatch = scope === 'folder' || scope === 'all';
+  const isBatch = scope === 'folder' || scope === 'group' || scope === 'all';
   UI.exportLayoutGroup?.classList.toggle('d-none', !isBatch);
 
   const needsNote = scope === 'current';
@@ -1932,8 +2269,22 @@ async function runExportFromModal() {
     return;
   }
 
+  if (scope === 'group') {
+    const groupId = getSelectedProjectGroupId();
+    if (!groupId) {
+      setExportStatus('Select a project inside a group to export the group.', true);
+      return;
+    }
+  }
+
   UI.btnExportConfirm.disabled = true;
   setExportStatus(scope === 'current' ? 'Choose where to save…' : 'Choose export folder…');
+
+  const selectedOption = UI.exportScopeSelect?.selectedOptions?.[0];
+  const exportGroupId =
+    scope === 'group'
+      ? selectedOption?.getAttribute('data-group-id') || getSelectedProjectGroupId()
+      : null;
 
   const payload = {
     scope,
@@ -1941,6 +2292,7 @@ async function runExportFromModal() {
     layout,
     project: state.selectedProject,
     noteFile: state.selectedNote,
+    groupId: exportGroupId,
     currentMarkdown: getCurrentNoteMarkdown()
   };
 
@@ -1994,11 +2346,42 @@ function setMoveNotesStatus(message, isError = false) {
   UI.moveNotesStatus.classList.toggle('text-secondary', !isError);
 }
 
+function buildMoveProjectOptionsHtml() {
+  const groups = sortedGroups();
+  const ungrouped = ungroupedProjects();
+  const parts = [];
+
+  if (ungrouped.length) {
+    parts.push('<optgroup label="Ungrouped">');
+    for (const p of ungrouped) {
+      parts.push(`<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`);
+    }
+    parts.push('</optgroup>');
+  }
+
+  for (const group of groups) {
+    const projects = projectsInGroup(group.id);
+    if (!projects.length) continue;
+    const label = group.meta.name || 'Group';
+    parts.push(`<optgroup label="${escapeHtml(label)}">`);
+    for (const p of projects) {
+      parts.push(`<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`);
+    }
+    parts.push('</optgroup>');
+  }
+
+  if (!parts.length) {
+    return [...(state.projectsOnDisk || [])]
+      .sort((a, b) => a.localeCompare(b))
+      .map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
+      .join('');
+  }
+
+  return parts.join('');
+}
+
 function populateMoveProjectSelects() {
-  const projects = [...(state.projectsOnDisk || [])].sort((a, b) => a.localeCompare(b));
-  const options = projects
-    .map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
-    .join('');
+  const options = buildMoveProjectOptionsHtml();
   if (UI.moveSourceProject) UI.moveSourceProject.innerHTML = options;
   if (UI.moveDestProject) UI.moveDestProject.innerHTML = options;
 }
@@ -2351,6 +2734,8 @@ async function boot() {
 
   buildIconGrid();
   buildColorGrid();
+  buildGroupIconGrid();
+  buildGroupColorGrid();
   bindEvents();
   updateNoteActionButtons();
 

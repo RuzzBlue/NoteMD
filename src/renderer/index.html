@@ -70,6 +70,9 @@
                   <option value="old">Oldest</option>
                 </select>
               </div>
+              <button id="btnAddGroup" class="btn btn-sm btn-outline-primary panel-header-btn" title="Add group" type="button">
+                <i class="fa-solid fa-folder-tree"></i>
+              </button>
               <button id="btnAddProject" class="btn btn-sm btn-primary panel-header-btn" title="Add project" type="button">
                 <i class="fa-solid fa-plus"></i>
               </button>
@@ -184,6 +187,13 @@
                 </div>
               </div>
 
+              <div class="col-12">
+                <label class="form-label small text-secondary" for="projectGroupSelect">Group</label>
+                <select id="projectGroupSelect" class="form-select form-select-sm">
+                  <option value="">No group (top level)</option>
+                </select>
+              </div>
+
               <div class="col-12 col-lg-6">
                 <label class="form-label small text-secondary">Icon</label>
                 <div id="iconGrid" class="icon-grid"></div>
@@ -210,6 +220,71 @@
                 Cancel
               </button>
               <button type="button" class="btn btn-primary" id="btnProjectSave">
+                <i class="fa-solid fa-check me-1"></i>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="groupModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="groupModalTitle">Group</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="d-flex align-items-end gap-3">
+                  <div class="flex-grow-1">
+                    <label class="form-label small text-secondary">Name</label>
+                    <input id="groupName" class="form-control" placeholder="Group name…" />
+                  </div>
+                  <div class="project-order-box text-end">
+                    <label class="form-label small text-secondary d-block">Order</label>
+                    <div class="d-flex align-items-center gap-2 justify-content-end">
+                      <button id="btnGroupOrderUp" class="btn btn-outline-secondary btn-sm" type="button" title="Move up">
+                        <i class="fa-solid fa-arrow-up"></i>
+                      </button>
+                      <span id="groupOrderDisplay" class="project-order-number">1</span>
+                      <button id="btnGroupOrderDown" class="btn btn-outline-secondary btn-sm" type="button" title="Move down">
+                        <i class="fa-solid fa-arrow-down"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label class="form-label small text-secondary">Icon</label>
+                <div id="groupIconGrid" class="icon-grid"></div>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label class="form-label small text-secondary">Color</label>
+                <div id="groupColorGrid" class="color-grid"></div>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                  <input id="groupColorPicker" type="color" class="form-control form-control-color" title="Choose custom color" />
+                  <input id="groupColorHex" class="form-control" placeholder="#RRGGBB" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-outline-danger d-none" id="btnDeleteGroupFooter">
+              <i class="fa-solid fa-trash me-1"></i>
+              Delete
+            </button>
+            <div class="d-flex gap-2 ms-auto">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <i class="fa-solid fa-xmark me-1"></i>
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary" id="btnGroupSave">
                 <i class="fa-solid fa-check me-1"></i>
                 Save
               </button>
@@ -345,7 +420,7 @@
                   checked
                 />
                 <label class="form-check-label" for="exportLayoutStructure">
-                  Keep folder structure (project subfolders)
+                  Keep folder structure (group and project subfolders)
                 </label>
               </div>
               <div class="form-check">

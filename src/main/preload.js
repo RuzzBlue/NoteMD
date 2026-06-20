@@ -12,6 +12,11 @@ contextBridge.exposeInMainWorld('notemd', {
   updateProject: (payload) => ipcRenderer.invoke('projects:update', payload),
   deleteProject: (folderName) => ipcRenderer.invoke('projects:delete', folderName),
 
+  // groups
+  createGroup: (payload) => ipcRenderer.invoke('groups:create', payload),
+  updateGroup: (payload) => ipcRenderer.invoke('groups:update', payload),
+  deleteGroup: (groupId) => ipcRenderer.invoke('groups:delete', groupId),
+
   // notes
   listNotes: (folderName) => ipcRenderer.invoke('notes:list', folderName),
   createNote: (folderName) => ipcRenderer.invoke('notes:create', folderName),

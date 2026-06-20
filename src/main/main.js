@@ -71,6 +71,10 @@ const {
   createProject,
   updateProject,
   deleteProject,
+  createGroup,
+  updateGroup,
+  deleteGroup,
+  listGroupProjects,
   listNotes,
   createNote,
   readNoteMarkdown,
@@ -596,6 +600,30 @@ ipcMain.handle('projects:delete', async (_evt, folderName) => {
   };
 });
 
+ipcMain.handle('groups:create', async (_evt, payload) => {
+  if (!currentRootPath) return { ok: false, error: 'Root not set' };
+  const data = await loadDataJson(currentRootPath);
+  const result = await createGroup(data, payload);
+  await saveDataJson(currentRootPath, result.data);
+  return { ok: true, group: result.group, data: result.data };
+});
+
+ipcMain.handle('groups:update', async (_evt, payload) => {
+  if (!currentRootPath) return { ok: false, error: 'Root not set' };
+  const data = await loadDataJson(currentRootPath);
+  const result = await updateGroup(data, payload);
+  await saveDataJson(currentRootPath, result.data);
+  return { ok: true, data: result.data };
+});
+
+ipcMain.handle('groups:delete', async (_evt, groupId) => {
+  if (!currentRootPath) return { ok: false, error: 'Root not set' };
+  const data = await loadDataJson(currentRootPath);
+  const result = await deleteGroup(data, groupId);
+  await saveDataJson(currentRootPath, result.data);
+  return { ok: true, data: result.data };
+});
+
 ipcMain.handle('notes:list', async (_evt, folderName) => {
   if (!currentRootPath) return { ok: false, error: 'Root not set' };
   const notes = await listNotes(currentRootPath, folderName);
@@ -705,9 +733,10 @@ ipcMain.handle('export:run', async (_evt, payload) => {
         mainWindow.webContents.focus();
       }
     };
+    const data = await loadDataJson(currentRootPath);
     const result = await runExport(
       currentRootPath,
-      payload,
+      { ...payload, data },
       (opts) => dialog.showSaveDialog(mainWindow, opts).then((res) => {
         focusWindow();
         return res;

@@ -57,7 +57,8 @@ async function ensureRootInitialized(rootPath) {
 
   if (!(await exists(dataJsonPath(rootPath)))) {
     const initial = {
-      schemaVersion: 1,
+      schemaVersion: 2,
+      groups: {},
       folders: {},
       settings: {
         rootPath
@@ -188,7 +189,7 @@ async function loadDataJson(rootPath) {
   try {
     return JSON.parse(raw);
   } catch {
-    return { schemaVersion: 1, folders: {}, settings: { rootPath } };
+    return { schemaVersion: 2, groups: {}, folders: {}, settings: { rootPath } };
   }
 }
 
@@ -217,8 +218,49 @@ function resequenceOrders(foldersMap) {
   return Object.fromEntries(entries.map((e) => [e.name, e.meta]));
 }
 
-async function ensureFolderMetadata(_rootPath, data, foldersOnDisk) {
+function resequenceGroupOrders(groupsMap) {
+  const entries = Object.entries(groupsMap).map(([id, meta]) => ({
+    id,
+    meta: { ...meta }
+  }));
+  entries.sort((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0));
+  entries.forEach((e, idx) => (e.meta.order = idx + 1));
+  return Object.fromEntries(entries.map((e) => [e.id, e.meta]));
+}
+
+function generateGroupId() {
+  return `group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function migrateDataSchema(data) {
   const next = structuredClone(data || {});
+  if (!next.groups) next.groups = {};
+  if (!next.folders) next.folders = {};
+  if (!next.settings) next.settings = {};
+
+  const version = next.schemaVersion || 1;
+  if (version < 2) {
+    for (const meta of Object.values(next.folders)) {
+      if (meta && meta.groupId === undefined) meta.groupId = null;
+    }
+    next.schemaVersion = 2;
+  }
+
+  const validGroupIds = new Set(Object.keys(next.groups));
+  for (const meta of Object.values(next.folders)) {
+    if (!meta) continue;
+    if (meta.groupId !== null && meta.groupId !== undefined && !validGroupIds.has(meta.groupId)) {
+      meta.groupId = null;
+    }
+    if (meta.groupId === undefined) meta.groupId = null;
+  }
+
+  next.groups = resequenceGroupOrders(next.groups);
+  return next;
+}
+
+async function ensureFolderMetadata(_rootPath, data, foldersOnDisk) {
+  const next = migrateDataSchema(data);
   next.folders = next.folders || {};
   next.settings = next.settings || {};
 
@@ -234,6 +276,7 @@ async function ensureFolderMetadata(_rootPath, data, foldersOnDisk) {
         color: '#2b6cb0',
         icon: 'fa-folder',
         order: maxOrder,
+        groupId: null,
         createdAt: nowIso()
       };
     }
@@ -254,12 +297,14 @@ async function createProject(rootPath, payload) {
   if (await exists(dir)) throw new Error('Project already exists');
   await ensureDir(dir);
   await ensureDefaultNoteInProject(rootPath, name);
+  const groupId = payload?.groupId || null;
   return {
     name,
     meta: {
       color: payload?.color || '#2b6cb0',
       icon: payload?.icon || 'fa-folder',
       order: Number.isFinite(payload?.order) ? payload.order : 999999,
+      groupId: groupId || null,
       createdAt: nowIso()
     }
   };
@@ -286,10 +331,22 @@ async function updateProject(rootPath, data, payload) {
   }
 
   const key = newName;
+  const requestedGroupId = payload?.groupId;
+  const groupUpdate = requestedGroupId !== undefined;
+  let groupId = next.folders[key].groupId ?? null;
+  if (groupUpdate) {
+    if (requestedGroupId === null || requestedGroupId === '') {
+      groupId = null;
+    } else if (next.groups?.[requestedGroupId]) {
+      groupId = requestedGroupId;
+    }
+  }
+
   next.folders[key] = {
     ...next.folders[key],
     color: payload?.color ?? next.folders[key].color,
-    icon: payload?.icon ?? next.folders[key].icon
+    icon: payload?.icon ?? next.folders[key].icon,
+    groupId
   };
 
   // move order
@@ -435,6 +492,82 @@ async function moveNote(rootPath, fromProject, noteFile, toProject) {
   };
 }
 
+async function createGroup(data, payload) {
+  const next = migrateDataSchema(data);
+  const id = generateGroupId();
+  const orders = Object.values(next.groups).map((g) => g?.order).filter((n) => Number.isFinite(n));
+  const maxOrder = orders.length ? Math.max(...orders) : 0;
+  next.groups[id] = {
+    name: safeName(payload?.name) || 'New Group',
+    icon: payload?.icon || 'fa-folder-tree',
+    color: payload?.color || '#6366f1',
+    order: maxOrder + 1,
+    expanded: true,
+    createdAt: nowIso()
+  };
+  next.groups = resequenceGroupOrders(next.groups);
+  return { data: next, group: { id, meta: next.groups[id] } };
+}
+
+async function updateGroup(data, payload) {
+  const next = migrateDataSchema(data);
+  const groupId = payload?.id;
+  const meta = next.groups[groupId];
+  if (!meta) throw new Error('Group not found');
+
+  if (payload?.name !== undefined) {
+    meta.name = safeName(payload.name) || meta.name;
+  }
+  if (payload?.icon !== undefined) meta.icon = payload.icon;
+  if (payload?.color !== undefined) meta.color = payload.color;
+  if (payload?.expanded !== undefined) meta.expanded = !!payload.expanded;
+
+  const move = payload?.move;
+  if (move === -1 || move === 1) {
+    const entries = Object.entries(next.groups).map(([id, m]) => ({ id, meta: { ...m } }));
+    entries.sort((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0));
+    const idx = entries.findIndex((e) => e.id === groupId);
+    const swapWith = idx + move;
+    if (idx >= 0 && swapWith >= 0 && swapWith < entries.length) {
+      const tmp = entries[idx].meta.order;
+      entries[idx].meta.order = entries[swapWith].meta.order;
+      entries[swapWith].meta.order = tmp;
+    }
+    next.groups = resequenceGroupOrders(Object.fromEntries(entries.map((e) => [e.id, e.meta])));
+  } else {
+    next.groups = resequenceGroupOrders(next.groups);
+  }
+
+  return { data: next };
+}
+
+async function deleteGroup(data, groupId) {
+  const next = migrateDataSchema(data);
+  if (!next.groups[groupId]) throw new Error('Group not found');
+
+  for (const [folderName, meta] of Object.entries(next.folders)) {
+    if (meta?.groupId === groupId) {
+      next.folders[folderName] = { ...meta, groupId: null };
+    }
+  }
+
+  delete next.groups[groupId];
+  next.groups = resequenceGroupOrders(next.groups);
+  return { data: next };
+}
+
+function getProjectGroupId(data, projectName) {
+  const meta = data?.folders?.[projectName];
+  return meta?.groupId ?? null;
+}
+
+function listGroupProjects(data, groupId) {
+  const folders = data?.folders || {};
+  return Object.entries(folders)
+    .filter(([, meta]) => meta?.groupId === groupId)
+    .map(([name]) => name);
+}
+
 async function moveNotes(rootPath, moves) {
   const moved = [];
   const failed = [];
@@ -467,10 +600,16 @@ module.exports = {
   loadDataJson,
   saveDataJson,
   ensureFolderMetadata,
+  migrateDataSchema,
   listProjects,
   createProject,
   updateProject,
   deleteProject,
+  createGroup,
+  updateGroup,
+  deleteGroup,
+  getProjectGroupId,
+  listGroupProjects,
   listNotes,
   createNote,
   readNoteMarkdown,

@@ -4,7 +4,8 @@ const fsp = require('fs').promises;
 const {
   listProjects,
   listNotes,
-  readMaybeTempMarkdown
+  readMaybeTempMarkdown,
+  listGroupProjects
 } = require('./notesStore');
 const { markdownToExport, EXPORT_FORMATS } = require('./noteFormats');
 
@@ -59,7 +60,7 @@ async function uniqueExportPath(dir, fileName) {
 }
 
 /**
- * @param {'current'|'folder'|'all'} scope
+ * @param {'current'|'folder'|'group'|'all'} scope
  */
 async function collectNotesToExport(rootPath, scope, options = {}) {
   const {
@@ -67,7 +68,9 @@ async function collectNotesToExport(rootPath, scope, options = {}) {
     noteFile,
     currentMarkdown,
     currentProject,
-    currentNoteFile
+    currentNoteFile,
+    groupId,
+    data
   } = options;
 
   const items = [];
@@ -95,6 +98,21 @@ async function collectNotesToExport(rootPath, scope, options = {}) {
     return items;
   }
 
+  if (scope === 'group') {
+    if (!groupId || !data) return items;
+    const projects = listGroupProjects(data, groupId);
+    for (const p of projects) {
+      const notes = await listNotes(rootPath, p);
+      for (const f of notes) {
+        const markdown = useLive(p, f)
+          ? currentMarkdown
+          : await readMaybeTempMarkdown(rootPath, p, f);
+        items.push({ project: p, noteFile: f, markdown });
+      }
+    }
+    return items;
+  }
+
   if (scope === 'all') {
     const projects = await listProjects(rootPath);
     for (const p of projects) {
@@ -111,33 +129,47 @@ async function collectNotesToExport(rootPath, scope, options = {}) {
   return items;
 }
 
+function resolveProjectGroupName(data, projectName) {
+  const groupId = data?.folders?.[projectName]?.groupId;
+  if (!groupId) return null;
+  const group = data?.groups?.[groupId];
+  return group?.name || null;
+}
+
 /**
  * @param {'structure'|'flat'} layout
- * @param {'folder'|'all'} scope - batch scope (not current)
+ * @param {'folder'|'group'|'all'} scope - batch scope (not current)
  */
-function buildExportRelativePath(item, format, layout, scope) {
+function buildExportRelativePath(item, format, layout, scope, data = null) {
   const ext = getExportExtension(format);
   const fileName = `${noteStem(item.noteFile)}.${ext}`;
+  const groupName = data ? resolveProjectGroupName(data, item.project) : null;
 
   if (layout === 'structure') {
+    if (groupName) {
+      return path.join(safeFileSegment(groupName), safeFileSegment(item.project), fileName);
+    }
     return path.join(safeFileSegment(item.project), fileName);
   }
 
-  if (scope === 'folder') {
+  if (scope === 'folder' || scope === 'group') {
     return fileName;
   }
 
-  return `${safeFileSegment(item.project)} - ${fileName}`;
+  const prefix = groupName
+    ? `${safeFileSegment(groupName)} - ${safeFileSegment(item.project)}`
+    : safeFileSegment(item.project);
+  return `${prefix} - ${fileName}`;
 }
 
-async function exportNotesToDirectory(destDir, items, format, layout, scope) {
+async function exportNotesToDirectory(destDir, items, format, layout, scope, data = null) {
   const usedPaths = new Set();
   const exported = [];
   const failed = [];
 
   for (const item of items) {
     try {
-      const relative = buildExportRelativePath(item, format, layout, scope);
+      const relative = buildExportRelativePath(item, format, layout, scope, data);
       const dir = path.dirname(relative);
       const outDir = dir === '.' ? destDir : path.join(destDir, dir);
       await fsp.mkdir(outDir, { recursive: true });
@@ -178,7 +210,9 @@ async function runExport(rootPath, payload, showSaveDialog, showDirectoryDialog)
     layout = 'structure',
     project,
     noteFile,
-    currentMarkdown
+    currentMarkdown,
+    groupId,
+    data
   } = payload || {};
 
   const fmt = String(format).toLowerCase();
@@ -187,7 +221,9 @@ async function runExport(rootPath, payload, showSaveDialog, showDirectoryDialog)
     noteFile,
     currentMarkdown,
     currentProject: project,
-    currentNoteFile: noteFile
+    currentNoteFile: noteFile,
+    groupId,
+    data
   });
 
   if (!items.length) {
@@ -214,7 +250,7 @@ async function runExport(rootPath, payload, showSaveDialog, showDirectoryDialog)
     return { ok: true, canceled: false, path: res.filePath, count: 1 };
   }
 
-  const batchScope = scope === 'folder' ? 'folder' : 'all';
+  const batchScope = scope === 'folder' ? 'folder' : scope === 'group' ? 'group' : 'all';
   const batchLayout = layout === 'flat' ? 'flat' : 'structure';
 
   const res = await showDirectoryDialog({
@@ -229,7 +265,8 @@ async function runExport(rootPath, payload, showSaveDialog, showDirectoryDialog)
     items,
     fmt,
     batchLayout,
-    batchScope
+    batchScope,
+    data
   );
 
   if (!exported.length) {
