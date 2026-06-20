@@ -13,6 +13,7 @@ A desktop note-taking app built with Electron. Pick a folder on your disk — yo
 - **Import notes** — drag-and-drop or pick files (`.txt`, `.md`, `.html`, `.json`, `.rtf`) → saved under `notes/Imports/`
 - **Export notes** — current note, whole folder, or everything; output as Markdown, plain text, HTML, JSON, or RTF
 - **Move notes** — shuttle notes between project folders (duplicates renamed automatically)
+- **First-run setup** — after choosing your notes folder, a one-time dialog walks you through adding a free TinyMCE API key
 - **Remembers your root folder** — last path stored in `%AppData%/Roaming/NoteMD/config.json`
 
 ## Quick Start
@@ -22,7 +23,13 @@ npm install
 npm start
 ```
 
-On first launch, pick a root folder for your notes. The app restores that path on every startup.
+On first launch:
+
+1. Pick a root folder for your notes
+2. Enter your **free TinyMCE API key** in the setup dialog (see [Security & API Keys](#security--api-keys))
+3. Start writing — the app restores your folder and key on every startup
+
+**Change your API key later:** Help → **Editor API Key…**
 
 **Development mode** (opens DevTools):
 
@@ -85,7 +92,7 @@ Notes are plain Markdown — open them in any editor, back them up with any sync
 | **View** | Toggle sidebar, window sizing, full screen |
 | **Editor** | Rich Text / Markdown / HTML source, full-screen editor |
 | **Dev** | Developer tools |
-| **Help** | Info, About |
+| **Help** | Info, Editor API key, About |
 
 ## App Icon
 
@@ -139,41 +146,41 @@ The TinyMCE setup is a known-good baseline — keep these pieces together when c
 
 ## Security & API Keys
 
-**This repo contains no API keys or secrets.** A full scan of source files and git history found nothing to rotate or revoke.
+**This repo contains no API keys or secrets.** Keys are stored locally on each user's PC only.
 
-### What you need to run NoteMD
+### First-time users (installed app)
 
-**Nothing extra.** Clone the repo, run `npm install`, then `npm start`. No sign-up, no `.env` file, no per-developer keys.
+After you choose your notes folder, NoteMD shows a **TinyMCE setup** dialog. You need a free API key before the rich-text editor works:
 
-| Service | Used for | Key required? |
-|---------|----------|---------------|
-| **TinyMCE (self-hosted)** | Rich text editor | No — bundled from `node_modules` |
-| **Bootstrap, marked, Turndown** | UI & format conversion | No |
-| **Font Awesome (CDN)** | Icons in the UI | No — public CDN, no account |
-| **Electron** | Desktop runtime | No |
+1. Click the [tiny.cloud](https://www.tiny.cloud/auth/signup/) link in the dialog (or sign up in your browser)
+2. Create a **free** account — no credit card required
+3. Open your [Tiny Cloud dashboard](https://www.tiny.cloud/my-account/dashboard/) and copy your API key
+4. Paste it into the dialog and click **Save and continue**
 
-### TinyMCE `license_key: 'gpl'` is not a secret
+The key is saved in `%AppData%/Roaming/NoteMD/config.json` on your machine. It is never committed to GitHub.
 
-The editor init in `renderer.js` sets `license_key: 'gpl'`. That is **TinyMCE’s open-source license declaration**, not a private API key. It tells TinyMCE you are self-hosting the GPL build from npm. It is safe and expected in public source code — do not treat it as a credential and do not move it to `.env`.
+To update it later: **Help → Editor API Key…**
 
-### Optional: TinyMCE Cloud API key (not used by this project)
+### Developers (running from source)
 
-NoteMD does **not** load TinyMCE from Tiny Cloud. If you ever switch to their CDN instead of `node_modules`, each developer needs their own **free** API key:
+Same first-run dialog appears unless you set the key in your shell before starting:
 
-1. Sign up at [tiny.cloud](https://www.tiny.cloud/auth/signup/) (free tier)
-2. Open your [Tiny Cloud dashboard](https://www.tiny.cloud/my-account/dashboard/) and copy your API key
-3. Store it locally only — e.g. create `.env` in the project root:
+```bash
+set TINYMCE_API_KEY=your-free-tiny-cloud-key-here
+npm start
+```
 
-   ```
-   TINYMCE_API_KEY=your-key-here
-   ```
+(PowerShell: `$env:TINYMCE_API_KEY="your-key"; npm start`)
 
-4. **Never commit `.env`** — it is already listed in `.gitignore`
+### What is not a secret
 
-Until you change the loader to Tiny Cloud, you can ignore this section.
+| Value | What it is |
+|-------|------------|
+| `license_key: 'gpl'` in `renderer.js` | TinyMCE open-source license declaration — safe in public code |
+| `%AppData%/Roaming/NoteMD/config.json` | Local preferences: notes folder, dark mode, **your** API key |
 
 ### Keeping secrets out of git
 
 - `.env` and `.env.*` are gitignored
-- Do not commit `%AppData%/Roaming/NoteMD/config.json` — it only stores your notes root path and dark-mode preference (local to your PC, not in the repo)
-- If you add third-party services later, use environment variables and document them here
+- Never commit `config.json` from AppData — it is per-user local storage
+- Each person uses their own free TinyMCE key; do not share keys in the repository
