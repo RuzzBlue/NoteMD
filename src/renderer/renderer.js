@@ -597,6 +597,29 @@ function getEditorContentStyle(darkMode) {
         text-decoration: line-through;
         opacity: 0.65;
       }
+      pre.notemd-code-block {
+        background: ${darkMode ? '#1f2937' : '#f3f4f6'};
+        border: 1px solid ${darkMode ? '#4b5563' : '#d1d5db'};
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+      pre.notemd-code-block code {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        font-family: inherit;
+      }
+      code {
+        background: ${darkMode ? '#374151' : '#f3f4f6'};
+        padding: 0.1em 0.35em;
+        border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.92em;
+      }
     `;
 }
 
@@ -731,10 +754,11 @@ async function initTinyMCE(editorHeight) {
     height: editorHeight || 400,
     resize: false,
     plugins:
-      'advlist anchor autolink charmap code codesample directionality emoticons fullscreen help image insertdatetime link lists media notemdchecklist notemdtoolbar pagebreak preview quickbars searchreplace table visualblocks visualchars wordcount',
+      'advlist anchor autolink charmap code codesample directionality emoticons fullscreen help image insertdatetime link lists media notemdblocks notemdchecklist notemdtoolbar pagebreak preview quickbars searchreplace table visualblocks visualchars wordcount',
     font_size_input_default_unit: 'px',
+    forced_root_block: 'p',
     toolbar: [
-      'undo redo | blocks fontfamily fontsizeinput | bold italic underline strikethrough forecolor backcolor | align | notemdtoolbarexpand',
+      'undo redo | notemdblocks fontfamily fontsizeinput | bold italic underline strikethrough forecolor backcolor | align | notemdtoolbarexpand',
       'outdent indent | bullist numlist notemdchecklist hr | link image media table | emoticons charmap insertdatetime | code preview fullscreen | removeformat help'
     ],
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
