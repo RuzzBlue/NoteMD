@@ -541,7 +541,7 @@ function getEditorContentStyle(darkMode) {
   return `
       html, body { height: 100%; margin: 0; }
       body {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         font-size: 14px;
         color: ${textColor};
         overflow-y: auto;
@@ -758,11 +758,12 @@ async function initTinyMCE(editorHeight) {
     height: editorHeight || 400,
     resize: false,
     plugins:
-      'advlist anchor autolink charmap code codesample directionality emoticons fullscreen help image insertdatetime link lists media notemdblocks notemdchecklist notemdtoolbar pagebreak preview quickbars searchreplace table visualblocks visualchars wordcount',
+      'advlist anchor autolink charmap code codesample directionality emoticons fullscreen help image insertdatetime link lists media notemdblocks notemdfontfamily notemdchecklist notemdtoolbar pagebreak preview quickbars searchreplace table visualblocks visualchars wordcount',
     font_size_input_default_unit: 'px',
     forced_root_block: 'p',
+    default_font_stack: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
     toolbar: [
-      'undo redo | notemdblocks fontfamily fontsizeinput | bold italic underline strikethrough forecolor backcolor | align | notemdtoolbarexpand',
+      'undo redo | notemdblocks notemdfontfamily fontsizeinput | bold italic underline strikethrough forecolor backcolor | align | notemdtoolbarexpand',
       'outdent indent | bullist numlist notemdchecklist hr | link image media table | emoticons charmap insertdatetime | code preview fullscreen | removeformat help'
     ],
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
