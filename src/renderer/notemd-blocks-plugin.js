@@ -193,13 +193,21 @@
     editor.ui.registry.addMenuButton('notemdblocks', {
       text: 'Blocks',
       fetch: (callback) => {
-        const activeItem = getActiveBlockItem(editor);
         callback(
           BLOCK_ITEMS.map((item) => ({
-            type: 'menuitem',
+            type: 'togglemenuitem',
             text: item.text,
-            active: item === activeItem,
-            onAction: () => applyBlockFormat(editor, item)
+            onAction: () => applyBlockFormat(editor, item),
+            onSetup: (api) => {
+              const sync = () => {
+                api.setActive(getActiveBlockItem(editor) === item);
+              };
+              sync();
+              editor.on('NodeChange', sync);
+              return () => {
+                editor.off('NodeChange', sync);
+              };
+            }
           }))
         );
       },

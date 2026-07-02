@@ -751,7 +751,7 @@ async function initTinyMCE(editorHeight) {
     menubar: true,
     removed_menuitems: 'newdocument',
     menu: {
-      file: { title: 'File', items: 'notemdClearDoc preview' }
+      file: { title: 'File', items: 'notemdClearDoc preview print' }
     },
     branding: false,
     promotion: false,
