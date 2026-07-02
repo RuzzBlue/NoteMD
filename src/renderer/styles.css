@@ -166,7 +166,69 @@ body {
 .sidebar-header {
   border-color: var(--border) !important;
   background: var(--panel);
-  justify-content: space-between;
+  gap: 6px;
+  padding-left: 10px;
+  padding-right: 8px;
+}
+
+.sidebar-header-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-header .panel-header-title {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.sidebar-header .panel-header-actions {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+  gap: 4px;
+  transform: none;
+}
+
+.sidebar-header-toggle {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  margin-right: -20px;
+}
+
+.sidebar-header-toggle i {
+  font-size: 1rem;
+}
+
+.sidebar-header .panel-header-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.sidebar-header .sort-select-wrap {
+  flex: 1;
+  min-width: 0;
+  max-width: 98px;
+}
+
+.sidebar-header .sort-select {
+  width: 100%;
+  min-width: 0;
+  max-width: 98px;
+  height: 28px;
+  padding-left: 1.55rem;
+  padding-right: 1.65rem;
+  font-size: 0.75rem;
+}
+
+.sidebar-header .sort-select-wrap .sort-select-icon {
+  left: 7px;
+  font-size: 0.65rem;
 }
 
 .panel-header-title {
@@ -175,7 +237,6 @@ body {
 
 .panel-header-actions {
   flex-shrink: 0;
-  transform: translate(20px, 0);
 }
 
 .panel-header-btn {

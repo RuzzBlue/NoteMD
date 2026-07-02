@@ -58,34 +58,36 @@
       <main class="main-area">
         <aside id="sidebar" class="sidebar border-end">
           <div class="sidebar-header panel-header border-bottom">
-            <div class="fw-semibold panel-header-title">Projects</div>
-            <div class="d-flex align-items-center gap-2 panel-header-actions">
-              <div class="sort-select-wrap">
-                <i class="fa-solid fa-arrow-down-wide-short sort-select-icon" aria-hidden="true"></i>
-                <select id="projectSort" class="form-select form-select-sm sort-select" aria-label="Sort projects">
-                  <option value="custom">Custom</option>
-                  <option value="az">A → Z</option>
-                  <option value="za">Z → A</option>
-                  <option value="new">Newest</option>
-                  <option value="old">Oldest</option>
-                </select>
+            <div class="sidebar-header-main">
+              <div class="fw-semibold panel-header-title">Projects</div>
+              <div class="d-flex align-items-center panel-header-actions">
+                <div class="sort-select-wrap">
+                  <i class="fa-solid fa-arrow-down-wide-short sort-select-icon" aria-hidden="true"></i>
+                  <select id="projectSort" class="form-select form-select-sm sort-select" aria-label="Sort projects">
+                    <option value="custom">Custom</option>
+                    <option value="az">A → Z</option>
+                    <option value="za">Z → A</option>
+                    <option value="new">Newest</option>
+                    <option value="old">Oldest</option>
+                  </select>
+                </div>
+                <button id="btnAddGroup" class="btn btn-sm btn-outline-primary panel-header-btn" title="Add group" type="button">
+                  <i class="fa-solid fa-folder-tree"></i>
+                </button>
+                <button id="btnAddProject" class="btn btn-sm btn-primary panel-header-btn" title="Add project" type="button">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
               </div>
-              <button id="btnAddGroup" class="btn btn-sm btn-outline-primary panel-header-btn" title="Add group" type="button">
-                <i class="fa-solid fa-folder-tree"></i>
-              </button>
-              <button id="btnAddProject" class="btn btn-sm btn-primary panel-header-btn" title="Add project" type="button">
-                <i class="fa-solid fa-plus"></i>
-              </button>
-              <button
-                id="btnHideSidebar"
-                class="sidebar-toggle-btn"
-                type="button"
-                title="Hide projects sidebar (Ctrl+B)"
-                aria-label="Hide sidebar"
-              >
-                <i class="fa-solid fa-caret-left" aria-hidden="true"></i>
-              </button>
             </div>
+            <button
+              id="btnHideSidebar"
+              class="sidebar-toggle-btn sidebar-header-toggle"
+              type="button"
+              title="Hide projects sidebar (Ctrl+B)"
+              aria-label="Hide sidebar"
+            >
+              <i class="fa-solid fa-caret-left" aria-hidden="true"></i>
+            </button>
           </div>
           <div id="projectList" class="project-list p-2"></div>
         </aside>
