@@ -89,6 +89,7 @@ const {
 } = require('./notesStore');
 const { importFilesAsNotes } = require('./importNotes');
 const { runExport } = require('./exportNote');
+const { runPrintJob } = require('./printNote');
 const { getExportFormatList, IMPORT_DIALOG_EXTENSIONS } = require('./noteFormats');
 
 // Writable profile/cache (avoids "Access is denied" when launched from restricted dirs).
@@ -209,6 +210,13 @@ function createMenu() {
     {
       label: 'File',
       submenu: [
+        {
+          label: 'Print Note…',
+          accelerator: 'Ctrl+P',
+          click: () => {
+            if (mainWindow) mainWindow.webContents.send('ui:showPrint');
+          }
+        },
         {
           label: 'Change Root Folder…',
           click: () => {
@@ -750,6 +758,15 @@ ipcMain.handle('export:run', async (_evt, payload) => {
         )
     );
     return result;
+  } catch (err) {
+    return { ok: false, canceled: false, error: err?.message || String(err) };
+  }
+});
+
+ipcMain.handle('print:run', async (_evt, payload) => {
+  if (!mainWindow) return { ok: false, canceled: false, error: 'Window not available' };
+  try {
+    return await runPrintJob(mainWindow, payload);
   } catch (err) {
     return { ok: false, canceled: false, error: err?.message || String(err) };
   }

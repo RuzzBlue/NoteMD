@@ -154,13 +154,16 @@ body {
 
 .panel-header {
   --panel-header-height: 52px;
+  height: var(--panel-header-height);
   min-height: var(--panel-header-height);
-  padding: 10px;
+  max-height: var(--panel-header-height);
+  padding: 0 10px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -461,6 +464,36 @@ body {
   border-color: var(--border) !important;
   background: var(--panel2);
   position: relative;
+  gap: 6px;
+  padding-right: 8px;
+}
+
+.tabs-bar .tabs-nav {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.tabs-bar .tabs-add-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tabs-bar .note-tabs {
+  padding-bottom: 0;
+}
+
+.tabs-bar .note-tab {
+  padding: 4px 10px;
+  font-size: 0.8125rem;
+  gap: 6px;
 }
 
 .sidebar-reveal-btn {
@@ -855,4 +888,81 @@ body {
 
 [data-theme='dark'] .import-status.text-danger {
   color: #f87171 !important;
+}
+
+.print-preview-meta {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 0;
+}
+
+.print-preview-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  background: #fff;
+  color: #111827;
+  min-height: 280px;
+  max-height: min(70vh, 720px);
+  overflow: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+[data-theme='dark'] .print-preview-body {
+  background: #f9fafb;
+}
+
+.print-preview-body h1,
+.print-preview-body h2,
+.print-preview-body h3,
+.print-preview-body h4,
+.print-preview-body h5,
+.print-preview-body h6 {
+  margin: 1em 0 0.4em;
+  line-height: 1.25;
+}
+
+.print-preview-body p {
+  margin: 0.65em 0;
+}
+
+.print-preview-body pre {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.75em 0.9em;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.print-preview-body code {
+  background: #f3f4f6;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.print-preview-body blockquote {
+  margin: 0.85em 0;
+  padding-left: 0.9em;
+  border-left: 3px solid #d1d5db;
+  color: #374151;
+}
+
+.print-preview-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.85em 0;
+}
+
+.print-preview-body th,
+.print-preview-body td {
+  border: 1px solid #d1d5db;
+  padding: 0.4em 0.55em;
+}
+
+.print-preview-body img {
+  max-width: 100%;
+  height: auto;
 }

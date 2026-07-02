@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('notemd', {
   // export
   getExportFormats: () => ipcRenderer.invoke('export:getFormats'),
   exportNotes: (payload) => ipcRenderer.invoke('export:run', payload),
+  printNote: (payload) => ipcRenderer.invoke('print:run', payload),
 
   // app
   focusWindow: () => ipcRenderer.invoke('app:focusWindow'),
@@ -58,6 +59,7 @@ contextBridge.exposeInMainWorld('notemd', {
   onShowAbout: (cb) => ipcRenderer.on('ui:showAbout', () => cb()),
   onShowImport: (cb) => ipcRenderer.on('ui:showImport', () => cb()),
   onShowExport: (cb) => ipcRenderer.on('ui:showExport', () => cb()),
+  onShowPrint: (cb) => ipcRenderer.on('ui:showPrint', () => cb()),
   onShowMoveNotes: (cb) => ipcRenderer.on('ui:showMoveNotes', () => cb()),
   onSetMarkdownMode: (cb) => ipcRenderer.on('ui:setMarkdownMode', () => cb()),
   onSetEditorMode: (cb) => ipcRenderer.on('ui:setEditorMode', () => cb()),

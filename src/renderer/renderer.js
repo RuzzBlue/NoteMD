@@ -84,6 +84,12 @@ const UI = {
   exportStatus: document.getElementById('exportStatus'),
   btnExportConfirm: document.getElementById('btnExportConfirm'),
 
+  printModalEl: document.getElementById('printModal'),
+  printModalTitle: document.getElementById('printModalTitle'),
+  printPreviewMeta: document.getElementById('printPreviewMeta'),
+  printPreviewBody: document.getElementById('printPreviewBody'),
+  btnPrintConfirm: document.getElementById('btnPrintConfirm'),
+
   moveNotesModalEl: document.getElementById('moveNotesModal'),
   moveSourceProject: document.getElementById('moveSourceProject'),
   moveDestProject: document.getElementById('moveDestProject'),
@@ -751,7 +757,7 @@ async function initTinyMCE(editorHeight) {
     menubar: true,
     removed_menuitems: 'newdocument',
     menu: {
-      file: { title: 'File', items: 'notemdClearDoc preview print' }
+      file: { title: 'File', items: 'notemdClearDoc preview notemdPrint' }
     },
     branding: false,
     promotion: false,
@@ -790,6 +796,13 @@ async function initTinyMCE(editorHeight) {
         icon: 'remove',
         shortcut: 'Meta+N',
         onAction: () => clearEditorDocument()
+      });
+
+      editor.ui.registry.addMenuItem('notemdPrint', {
+        text: 'Print',
+        icon: 'print',
+        shortcut: 'Meta+P',
+        onAction: () => showPrintPreviewModal()
       });
 
       const autosaveFromEditor = () => {
@@ -2009,11 +2022,13 @@ function bindEvents() {
     window.notemd.onShowAbout(() => showAboutModal());
     window.notemd.onShowImport(() => showImportModal());
     window.notemd.onShowExport(() => showExportModal());
+    window.notemd.onShowPrint(() => showPrintPreviewModal());
     window.notemd.onShowMoveNotes(() => openMoveNotesModal());
   }
 
   bindImportModal();
   bindExportModal();
+  bindPrintModal();
   bindMoveNotesModal();
 }
 
@@ -2143,6 +2158,75 @@ async function runImportFromModal() {
 function getCurrentNoteMarkdown() {
   if (state.markdownMode) return UI.markdownRaw.value || '';
   return htmlToMd(getEditor()?.getContent({ format: 'html' }) || '');
+}
+
+function getCurrentNoteHtml() {
+  if (state.markdownMode) return mdToHtml(UI.markdownRaw.value || '');
+  return getEditor()?.getContent({ format: 'html' }) || '';
+}
+
+function getCurrentNoteTitle() {
+  const fromInput = UI.noteName?.value?.trim();
+  if (fromInput) return fromInput;
+  if (state.selectedNote) return state.selectedNote.replace(/\.md$/i, '');
+  return 'Untitled';
+}
+
+function showPrintPreviewModal() {
+  if (!state.rootPath) {
+    alert('Choose a root folder before printing (File → Change Root Folder…).');
+    return;
+  }
+  if (!state.selectedProject || !state.selectedNote) {
+    alert('Open a note to print.');
+    return;
+  }
+
+  const title = getCurrentNoteTitle();
+  const html = getCurrentNoteHtml();
+  const project = state.selectedProject;
+
+  if (UI.printModalTitle) UI.printModalTitle.textContent = `Print preview — ${title}`;
+  if (UI.printPreviewMeta) {
+    UI.printPreviewMeta.textContent = project ? `Project: ${project}` : '';
+  }
+  if (UI.printPreviewBody) {
+    UI.printPreviewBody.innerHTML = html || '<p class="text-secondary mb-0">This note is empty.</p>';
+  }
+
+  bootstrap.Modal.getOrCreateInstance(UI.printModalEl).show();
+}
+
+async function runPrintFromModal() {
+  if (!state.selectedProject || !state.selectedNote) return;
+
+  if (UI.btnPrintConfirm) UI.btnPrintConfirm.disabled = true;
+
+  const payload = {
+    title: getCurrentNoteTitle(),
+    html: getCurrentNoteHtml(),
+    project: state.selectedProject
+  };
+
+  const res = await window.notemd.printNote(payload);
+
+  if (UI.btnPrintConfirm) UI.btnPrintConfirm.disabled = false;
+
+  if (res?.canceled) return;
+  if (!res?.ok) {
+    alert(res?.error || 'Print failed.');
+    return;
+  }
+
+  bootstrap.Modal.getOrCreateInstance(UI.printModalEl).hide();
+}
+
+function bindPrintModal() {
+  if (!UI.printModalEl) return;
+
+  UI.btnPrintConfirm?.addEventListener('click', async () => {
+    await runPrintFromModal();
+  });
 }
 
 function setExportStatus(message, isError = false) {
