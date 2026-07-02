@@ -131,6 +131,11 @@
     return match?.text || 'Paragraph';
   }
 
+  function getActiveBlockItem(editor) {
+    const label = getActiveBlockLabel(editor);
+    return BLOCK_ITEMS.find((item) => item.text === label) || BLOCK_ITEMS.find((item) => item.tag === 'p');
+  }
+
   function selectionIsEndOfPre(editor, pre) {
     if (!pre) return false;
     const rng = editor.selection.getRng();
@@ -188,10 +193,12 @@
     editor.ui.registry.addMenuButton('notemdblocks', {
       text: 'Blocks',
       fetch: (callback) => {
+        const activeItem = getActiveBlockItem(editor);
         callback(
           BLOCK_ITEMS.map((item) => ({
             type: 'menuitem',
             text: item.text,
+            active: item === activeItem,
             onAction: () => applyBlockFormat(editor, item)
           }))
         );

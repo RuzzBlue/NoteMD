@@ -749,6 +749,10 @@ async function initTinyMCE(editorHeight) {
     skin: state.darkMode ? 'oxide-dark' : 'oxide',
     content_css: state.darkMode ? 'dark' : 'default',
     menubar: true,
+    removed_menuitems: 'newdocument',
+    menu: {
+      file: { title: 'File', items: 'notemdClearDoc preview' }
+    },
     branding: false,
     promotion: false,
     height: editorHeight || 400,
@@ -780,9 +784,9 @@ async function initTinyMCE(editorHeight) {
         window.setTimeout(() => syncEditorHeight(), 200);
       });
 
-      editor.ui.registry.addMenuItem('newdocument', {
+      editor.ui.registry.addMenuItem('notemdClearDoc', {
         text: 'Clear document',
-        icon: 'new-document',
+        icon: 'remove',
         shortcut: 'Meta+N',
         onAction: () => clearEditorDocument()
       });

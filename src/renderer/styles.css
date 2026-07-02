@@ -680,6 +680,19 @@ body {
   height: 100% !important;
 }
 
+/* TinyMCE menus render in aux layer — highlight active block format like hover */
+.tox-tinymce-aux .tox-collection__item--active,
+.tox-tinymce-aux .tox-collection__item[aria-checked='true'] {
+  background-color: rgba(37, 99, 235, 0.14) !important;
+  color: #2563eb !important;
+}
+
+[data-theme='dark'] .tox-tinymce-aux .tox-collection__item--active,
+[data-theme='dark'] .tox-tinymce-aux .tox-collection__item[aria-checked='true'] {
+  background-color: rgba(96, 165, 250, 0.18) !important;
+  color: #93c5fd !important;
+}
+
 .markdown-raw {
   position: absolute;
   inset: 0;
